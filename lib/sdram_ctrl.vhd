@@ -17,6 +17,8 @@ entity sdram_ctrl is
 		-- RW (1=w, 0=r)
 		rw				: in std_logic;
 		
+		rreq			: in std_logic;
+		
 		reset 		: in std_logic;
 	 
 		A				: out std_logic_vector(13 downto 0) := (others => '0');
@@ -45,6 +47,8 @@ entity sdram_ctrl is
 		-- Recommended to set "high" during initial 200 µs init delay
 		DQM			: out std_logic_vector(1 downto 0) := (others => '1');
 		
+		rack        : out std_logic := '0';
+		
 		debug         : out std_logic_vector(7 downto 0) := (others => '0')
 	 
     );
@@ -56,7 +60,7 @@ architecture rtl of sdram_ctrl is
 type t_ini_state IS (PAUSE,PRECHARGE_ALL,AUTO_REFRESH,IDLE,WRITE_MR);
 type t_ctrl_state IS (BOOT,IDLE,RD,WR);
 type t_read_state IS (INIT,BANK_ACTIVE,WAIT_READ,DO_READ);
-type t_write_state IS (INIT,BANK_ACTIVE,WAIT_WRITE,DO_WRITE);
+type t_write_state IS (INIT,BANK_ACTIVE,DO_WRITE);
 
 signal state  : t_ctrl_state;
 signal istate : t_ini_state;
@@ -213,12 +217,25 @@ elsif falling_edge(clki) then
 						-- Device deselect to bring CS high
 						CS <= '1';
 						
-						state <= WR;
-						wstate <= INIT;
+						state <= IDLE;
 					else
 						delay <= delay - 1;
 					end if;
 			end case;
+			
+		when IDLE =>
+		
+			if rreq = '1' then
+			
+				if rw = '1' then
+					state <= WR;
+					wstate <= INIT;
+				else
+					state <= RD;
+					rstate <= INIT;
+					
+				end if;			
+			end if;
 			
 		when WR =>
 		
@@ -274,10 +291,8 @@ elsif falling_edge(clki) then
 						-- First bits go here
 						data16 <= data32_2(15 downto 0);
 						
-						--delay <= to_unsigned(3-1, delay'length);
-						
-						-- This is actually the minimum time needed before the next command.
-						--delay <= (3 - 1);--to_unsigned(0, delay'length); -- tRC OR (tRAS + tRP) : 60 OR (42 + 15) : 60 OR 57: [ns] I guess I need to take the largest delay. So at 12 MHz, period 83 ns is plenty.
+						delay <= to_unsigned(7-1, delay'length);
+
 					else
 						delay <= delay - 1;
 					end if;
@@ -285,16 +300,9 @@ elsif falling_edge(clki) then
 				when DO_WRITE =>
 				
 					CS <= '1';
-					
-					data16 <= data32(31 downto 16);
-					
-					wstate <= WAIT_WRITE;
-					delay <= to_unsigned(10, delay'length);
-											
-				when WAIT_WRITE =>
 				
 					if delay = 0 then
-						state <= RD;
+						state <= IDLE;
 						wstate <= INIT;
 					else
 						delay <= delay - 1;
