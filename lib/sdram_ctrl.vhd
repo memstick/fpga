@@ -1,7 +1,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.ALL;
- 
+
 entity sdram_ctrl is
   port (
 	
@@ -12,7 +12,7 @@ entity sdram_ctrl is
 		addr			: in std_logic_vector(31 downto 0);
 		
 		-- Data (read/write)
-		data  		: in std_logic_vector(31 downto 0);
+		data  		: inout std_logic_vector(31 downto 0);
 		
 		-- RW (1=w, 0=r)
 		rw				: in std_logic;
@@ -58,7 +58,7 @@ architecture rtl of sdram_ctrl is
 
 -- Typedefs
 type t_ini_state IS (PAUSE,PRECHARGE_ALL,AUTO_REFRESH,IDLE,WRITE_MR);
-type t_ctrl_state IS (BOOT,IDLE,RD,WR);
+type t_ctrl_state IS (BOOT,IDLE,RD,WR,DONE);
 type t_read_state IS (INIT,BANK_ACTIVE,WAIT_READ,DO_READ);
 type t_write_state IS (INIT,BANK_ACTIVE,DO_WRITE);
 
@@ -69,38 +69,59 @@ signal wstate : t_write_state;
 
 signal delay : unsigned(15 downto 0);
 
-signal data16 : std_logic_vector(15 downto 0);
+-- Tristate registers for data and DQ
+signal data_i : std_logic_vector(31 downto 0);
+signal data_o : std_logic_vector(31 downto 0);
 
-signal data32 : std_logic_vector(31 downto 0);
-signal data32_2 : std_logic_vector(31 downto 0);
+signal DQ_i : std_logic_vector(15 downto 0);
+signal DQ_o : std_logic_vector(15 downto 0);
+
+--signal rreq_sticky : std_logic := '0';
+--signal rreq_sticky_clear : std_logic := '0';
 
 begin
+
+-- Tristate the "data" pin
+data <= data_o when RW = '0' else (others => 'Z');
+data_i <= data;
+
+debug <= data_o(7 downto 0);
+
+-- Tristate DQ bus
+DQ <= (others => 'Z') when state = RD else DQ_o;
+DQ_i <= DQ;
+
+--process(rreq,rreq_sticky_clear)
+
+--begin
+
+--if rising_edge(rreq) then
+
+--	rreq_sticky <= '1';
+	
+--elsif rreq_sticky_clear = '1' then
+
+--	rreq_sticky <= '0';
+
+--end if;
+
+--end process; -- rreq
+
 
 process(clki,reset)
 
 begin
 
--- Tristate DQ bus
-case state is
-	when RD =>
-		DQ <= (others =>'Z');
-		--data16 <= DQ;
-	when others =>
-		DQ <= data16;
-end case;
-
--- DEBUG!
-debug <= data32(7 downto 0);
-
 -- Clock gate dram until start pause
 if istate = IDLE then
-	CLK <= '0';
+	--CLK <= '0';
+	CLK <= clki;
 else
 	CLK <= clki;
 end if;
 
 -- Reset
-if reset = '0' then
+if reset = '1' then
 
 	state <= BOOT;
 	istate <= IDLE;
@@ -118,10 +139,10 @@ if reset = '0' then
 	CAS <= '1';
 	WE <= '1';
 	CS <= '0';
-	data32_2 <= "00110011001100110011001100110011";
-	--DQ <=  driven by data16
-	--data16 <= (others => '0');
 	DQM <= (others => '1');
+	
+	--rreq_sticky_clear <= '1';
+	rack <= '0';
 
 elsif falling_edge(clki) then
 
@@ -289,7 +310,7 @@ elsif falling_edge(clki) then
 						wstate <= DO_WRITE;
 						
 						-- First bits go here
-						data16 <= data32_2(15 downto 0);
+						DQ_o <= data_i(15 downto 0);
 						
 						delay <= to_unsigned(7-1, delay'length);
 
@@ -302,9 +323,12 @@ elsif falling_edge(clki) then
 					CS <= '1';
 				
 					if delay = 0 then
-						state <= IDLE;
+						state <= DONE;
 						wstate <= INIT;
+						--rreq_sticky_clear <= '1';
+						rack <= '1';
 					else
+						DQ_o <= data_i(31 downto 16);
 						delay <= delay - 1;
 					end if;
 		
@@ -387,7 +411,9 @@ elsif falling_edge(clki) then
 						
 						-- go to idle
 						istate <= IDLE;
-						state <= IDLE;
+						state <= DONE;
+						--rreq_sticky_clear <= '1';
+						rack <= '1';
 					
 					else
 					
@@ -396,6 +422,13 @@ elsif falling_edge(clki) then
 					end if;
 				
 			end case;
+			
+		when DONE =>
+		
+			if rreq = '0' then
+				state <= IDLE;
+				rack <= '0';
+			end if;
 		
 		when others =>
 		
@@ -421,11 +454,11 @@ begin
 					
 						if delay = 1 then
 						
-							data32(15 downto 0) <= DQ;--data16;--"0101010101010101";--data16;
+							data_o(15 downto 0) <= DQ_i;
 						
 						elsif delay = 0 then
 					
-							data32(31 downto 16) <= DQ;--data16;
+							data_o(31 downto 16) <= DQ_i;
 						
 						end if;
 					
