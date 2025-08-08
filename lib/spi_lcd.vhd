@@ -70,7 +70,6 @@ if falling_edge(clk) then
 		rstate <= RAM_INIT;
 		rack <= '0';
 		debug <= (others => '0');
-		ddram(0) <= x"48";
 		test <= 0;
 	else
 	

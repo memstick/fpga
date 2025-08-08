@@ -69,6 +69,11 @@ signal wstate : t_write_state;
 
 signal delay : unsigned(15 downto 0);
 
+-- Addressing
+signal bank : std_logic_vector(1 downto 0);
+signal row  : std_logic_vector(12 downto 0);
+signal col  : std_logic_vector(8 downto 0);
+
 -- Tristate registers for data and DQ
 signal data_i : std_logic_vector(31 downto 0);
 signal data_o : std_logic_vector(31 downto 0);
@@ -91,6 +96,8 @@ debug <= data_o(7 downto 0);
 DQ <= (others => 'Z') when state = RD else DQ_o;
 DQ_i <= DQ;
 
+CLK <= clki when reset = '0' else '0';
+
 --process(rreq,rreq_sticky_clear)
 
 --begin
@@ -112,327 +119,343 @@ process(clki,reset)
 
 begin
 
--- Clock gate dram until start pause
-if istate = IDLE then
-	--CLK <= '0';
-	CLK <= clki;
-else
-	CLK <= clki;
-end if;
+---- Clock gate dram until start pause
+--if istate = IDLE then
+--	--CLK <= '0';
+--	CLK <= clki;
+--else
+--	CLK <= clki;
+--end if;
 
--- Reset
-if reset = '1' then
 
-	state <= BOOT;
-	istate <= IDLE;
-	rstate <= INIT;
-	wstate <= INIT;
 
-	-- After initial power up; all pins must be in "NOP"
-	-- CKE[n-1] must be "1" and after that don't care, so just set CKE to 1
+if falling_edge(clki) then
 
-	A <= (others => '0');
-	BA <= (others => '0');
-	CLK <= '0';
-	CKE <= '1';
-	RAS <= '1';
-	CAS <= '1';
-	WE <= '1';
-	CS <= '0';
-	DQM <= (others => '1');
-	
-	--rreq_sticky_clear <= '1';
-	rack <= '0';
+	-- Reset
+	if reset = '1' then
 
-elsif falling_edge(clki) then
+		state <= BOOT;
+		istate <= IDLE;
+		rstate <= INIT;
+		wstate <= INIT;
 
-	case state is
-	
-		when BOOT =>
-			case istate is
-			
-				when IDLE =>
+		-- After initial power up; all pins must be in "NOP"
+		-- CKE[n-1] must be "1" and after that don't care, so just set CKE to 1
+
+		A <= (others => '0');
+		BA <= (others => '0');
+		--CLK <= '0';
+		CKE <= '1';
+		RAS <= '1';
+		CAS <= '1';
+		WE <= '1';
+		CS <= '0';
+		DQM <= (others => '1');
+		
+		--rreq_sticky_clear <= '1';
+		rack <= '0';
+
+	else
+
+		case state is
+		
+			when BOOT =>
+				case istate is
 				
-					if delay = 0 then
-						istate <= PAUSE;
-						delay <= to_unsigned(2400, delay'length);
+					when IDLE =>
+					
+						if delay = 0 then
+							istate <= PAUSE;
+							delay <= to_unsigned(2400, delay'length);
+						else
+							delay <= delay - 1;
+						end if;
+						
+					when PAUSE =>
+						
+						if delay = to_unsigned(0, delay'length) then
+							istate <= PRECHARGE_ALL;
+							
+							CS <= '0';
+							RAS <= '0';
+							CAS <= '1';
+							WE <= '0';
+							
+							DQM <= (others => '0');
+						
+							A(10) <= '1'; -- precharge all banks
+							
+							delay <= to_unsigned(2-1, delay'length); -- 1 cycle tRP; take 2 so that cs can go high one pulse as NOP (Device desel)
+						else
+							delay <= delay - 1;
+						end if;
+						
+					when PRECHARGE_ALL =>
+					
+						CS <= '1';
+					
+						if delay = 0 then
+							istate <= AUTO_REFRESH;
+							
+							CS <= '0';
+							RAS <= '0';
+							CAS <= '0';
+							WE <= '1';
+							
+							delay <= to_unsigned(8-1+1, delay'length); -- does not depend on frequency; eight cycles before or after MR write. plus one cycle so that AR can do a device desel (NOP) before MR write
+						else
+							delay <= delay - 1;
+						end if;
+						
+					when AUTO_REFRESH =>
+					
+						if delay = 1 then
+							CS <= '1';
+							delay <= delay - 1;
+						elsif delay = 0 then
+							istate <= WRITE_MR;
+							
+							CS <= '0';
+							RAS <= '0';
+							CAS <= '0';
+							WE <= '0';
+							
+							-- A0-A2 Burst length 2 = 32bit per r/w (in seq + interleave)
+							-- A3    Interleaved addressing mode
+							-- A4-A6 CAS latency 3
+							-- A9    Write mode burst read + burst write
+							-- Rest is 0 "reserved" bits.
+							A <= "00000000111001";
+							BA <= "00";
+							
+							delay <= to_unsigned(2-1, delay'length); -- 2 cycles
+							
+						else
+							delay <= delay - 1;
+						end if;
+					
+					when WRITE_MR =>
+					
+						CS <= '1';
+					
+						if delay = 0 then
+						
+							-- NOP it
+							--CS <= '0';
+							--RAS <= '1';
+							--CAS <= '1';
+							--WE <= '1';
+							
+							-- Device deselect to bring CS high
+							CS <= '1';
+							
+							state <= IDLE;
+						else
+							delay <= delay - 1;
+						end if;
+				end case;
+				
+			when IDLE =>
+			
+				if rreq = '1' then
+				
+					if rw = '1' then
+						state <= WR;
+						wstate <= INIT;
 					else
-						delay <= delay - 1;
+						state <= RD;
+						rstate <= INIT;
+						
 					end if;
 					
-				when PAUSE =>
+					bank <= addr(23 downto 22);
+					row  <= addr(21 downto 9);
+					col  <= addr(8 downto 0);
+				end if;
+				
+			when WR =>
+			
+				case wstate is
+				
+					when INIT =>
 					
-					if delay = to_unsigned(0, delay'length) then
-						istate <= PRECHARGE_ALL;
-						
+						-- Bank activate command
 						CS <= '0';
 						RAS <= '0';
 						CAS <= '1';
-						WE <= '0';
-						
-						DQM <= (others => '0');
-					
-						A(10) <= '1'; -- precharge all banks
-						
-						delay <= to_unsigned(2-1, delay'length); -- 1 cycle tRP; take 2 so that cs can go high one pulse as NOP (Device desel)
-					else
-						delay <= delay - 1;
-					end if;
-					
-				when PRECHARGE_ALL =>
-				
-					CS <= '1';
-				
-					if delay = 0 then
-						istate <= AUTO_REFRESH;
-						
-						CS <= '0';
-						RAS <= '0';
-						CAS <= '0';
 						WE <= '1';
 						
-						delay <= to_unsigned(8-1+1, delay'length); -- does not depend on frequency; eight cycles before or after MR write. plus one cycle so that AR can do a device desel (NOP) before MR write
-					else
-						delay <= delay - 1;
-					end if;
+						-- Select bank
+						--BA(0) <= '0';
+						--BA(1) <= '0';
+						BA <= bank;
+						
+						-- Select row
+						--A(11 downto 0) <= (others => '0');
+						A(12 downto 0) <= row;
+						
+						--test
+						--DQM <= (others => '1');
+						
+						wstate <= BANK_ACTIVE;
+						
+						-- timing diagram specifies three cycles - but also tRCD
+						--tRCD -> minimum 15 ns; at 12 MHz the clock period is 83 ns so just one is okay.
+						
+						delay <= to_unsigned(3-1, delay'length); 
 					
-				when AUTO_REFRESH =>
-				
-					if delay = 1 then
-						CS <= '1';
-						delay <= delay - 1;
-					elsif delay = 0 then
-						istate <= WRITE_MR;
-						
-						CS <= '0';
-						RAS <= '0';
-						CAS <= '0';
-						WE <= '0';
-						
-						-- A0-A2 Burst length 2 = 32bit per r/w (in seq + interleave)
-						-- A3    Interleaved addressing mode
-						-- A4-A6 CAS latency 3
-						-- A9    Write mode burst read + burst write
-						-- Rest is 0 "reserved" bits.
-						A <= "00000000111001";
-						BA <= "00";
-						
-						delay <= to_unsigned(2-1, delay'length); -- 2 cycles
-						
-					else
-						delay <= delay - 1;
-					end if;
-				
-				when WRITE_MR =>
-				
-					CS <= '1';
-				
-					if delay = 0 then
+					when BANK_ACTIVE =>
 					
-						-- NOP it
-						--CS <= '0';
-						--RAS <= '1';
-						--CAS <= '1';
-						--WE <= '1';
-						
-						-- Device deselect to bring CS high
 						CS <= '1';
 						
-						state <= IDLE;
-					else
-						delay <= delay - 1;
-					end if;
-			end case;
-			
-		when IDLE =>
-		
-			if rreq = '1' then
-			
-				if rw = '1' then
-					state <= WR;
-					wstate <= INIT;
-				else
-					state <= RD;
-					rstate <= INIT;
-					
-				end if;			
-			end if;
-			
-		when WR =>
-		
-			case wstate is
-			
-				when INIT =>
-				
-					-- Bank activate command
-					CS <= '0';
-					RAS <= '0';
-					CAS <= '1';
-					WE <= '1';
-					
-					-- Select bank
-					BA(0) <= '0';
-					BA(1) <= '0';
-					
-					-- Select row
-					A(11 downto 0) <= (others => '0');
-					
-					--test
-					--DQM <= (others => '1');
-					
-					wstate <= BANK_ACTIVE;
-					
-					-- timing diagram specifies three cycles - but also tRCD
-					--tRCD -> minimum 15 ns; at 12 MHz the clock period is 83 ns so just one is okay.
-					
-					delay <= to_unsigned(3-1, delay'length); 
-				
-				when BANK_ACTIVE =>
-				
-					CS <= '1';
-					
-					if delay = 0 then
-						
-						-- Write command
-						CS <= '0';
-						RAS <= '1';
-						CAS <= '0';
-						WE <= '0'; -- Write is opposite to read with WE bit
-						
-						-- A(10) is AUTO PRECHARGE
-						A(10) <= '1';
-						
-						-- A(8 -> 0) is column address
-						A(8 downto 0) <= (others => '0');
-						A(9) <= '0';
-						A(11) <= '0';
-						
-						wstate <= DO_WRITE;
-						
-						-- First bits go here
-						DQ_o <= data_i(15 downto 0);
-						
-						delay <= to_unsigned(7-1, delay'length);
+						if delay = 0 then
+							
+							-- Write command
+							CS <= '0';
+							RAS <= '1';
+							CAS <= '0';
+							WE <= '0'; -- Write is opposite to read with WE bit
+							
+							-- A(10) is AUTO PRECHARGE
+							A(10) <= '1';
+							
+							-- A(8 -> 0) is column address
+							--A(8 downto 0) <= (others => '0');
+							A(8 downto 0) <= col;
+							A(9) <= '0';
+							A(11) <= '0';
+							
+							wstate <= DO_WRITE;
+							
+							-- First bits go here
+							DQ_o <= data_i(15 downto 0);
+							
+							delay <= to_unsigned(7-1, delay'length);
 
-					else
-						delay <= delay - 1;
-					end if;
-				
-				when DO_WRITE =>
-				
-					CS <= '1';
-				
-					if delay = 0 then
-						state <= DONE;
-						wstate <= INIT;
-						--rreq_sticky_clear <= '1';
-						rack <= '1';
-					else
-						DQ_o <= data_i(31 downto 16);
-						delay <= delay - 1;
-					end if;
-		
-			end case;
-		
-		when RD =>
-		
-			case rstate is
+						else
+							delay <= delay - 1;
+						end if;
+					
+					when DO_WRITE =>
+					
+						CS <= '1';
+					
+						if delay = 0 then
+							state <= DONE;
+							wstate <= INIT;
+							--rreq_sticky_clear <= '1';
+							rack <= '1';
+						else
+							DQ_o <= data_i(31 downto 16);
+							delay <= delay - 1;
+						end if;
 			
-				when INIT =>
+				end case;
+			
+			when RD =>
+			
+				case rstate is
 				
-					-- Bank activate command
-					CS <= '0';
-					RAS <= '0';
-					CAS <= '1';
-					WE <= '1';
+					when INIT =>
 					
-					-- Select bank
-					BA(0) <= '0';
-					BA(1) <= '0';
-					
-					-- Select row
-					A(11 downto 0) <= (others => '0');
-					
-					--test
-					--DQM <= (others => '1');
-					
-					rstate <= BANK_ACTIVE;
-					
-					-- timing diagram specifies three cycles - but also tRCD
-					--tRCD -> minimum 15 ns; at 12 MHz the clock period is 83 ns so just one is okay.
-					
-					delay <= to_unsigned(3-1, delay'length); 
-				
-				when BANK_ACTIVE =>
-				
-					CS <= '1';
-					
-					if delay = 0 then
-						
-						-- Read command
+						-- Bank activate command
 						CS <= '0';
-						RAS <= '1';
-						CAS <= '0';
+						RAS <= '0';
+						CAS <= '1';
 						WE <= '1';
 						
-						-- A(10) is AUTO PRECHARGE
-						A(10) <= '1';
+						-- Select bank
+						--BA(0) <= '0';
+						--BA(1) <= '0';
+						BA <= bank;
 						
-						-- A(8 -> 0) is column address
-						A(8 downto 0) <= (others => '0');
-						A(9) <= '0';
-						A(11) <= '0';
+						-- Select row
+						--A(11 downto 0) <= (others => '0');
+						A(12 downto 0) <= row;
 						
-						rstate <= WAIT_READ;
+						--test
+						--DQM <= (others => '1');
 						
-						-- Need to wait CAS cycles - 1
-						delay <= to_unsigned(3-1, delay'length);
+						rstate <= BANK_ACTIVE;
 						
-						-- This is actually the minimum time needed before the next command.
-						--delay <= (3 - 1);--to_unsigned(0, delay'length); -- tRC OR (tRAS + tRP) : 60 OR (42 + 15) : 60 OR 57: [ns] I guess I need to take the largest delay. So at 12 MHz, period 83 ns is plenty.
-					else
-						delay <= delay - 1;
-					end if;
+						-- timing diagram specifies three cycles - but also tRCD
+						--tRCD -> minimum 15 ns; at 12 MHz the clock period is 83 ns so just one is okay.
+						
+						delay <= to_unsigned(3-1, delay'length); 
 					
-				when WAIT_READ =>
+					when BANK_ACTIVE =>
+					
+						CS <= '1';
+						
+						if delay = 0 then
+							
+							-- Read command
+							CS <= '0';
+							RAS <= '1';
+							CAS <= '0';
+							WE <= '1';
+							
+							-- A(10) is AUTO PRECHARGE
+							A(10) <= '1';
+							
+							-- A(8 -> 0) is column address
+							--A(8 downto 0) <= (others => '0');
+							A(8 downto 0) <= col;
+							A(9) <= '0';
+							A(11) <= '0';
+							
+							rstate <= WAIT_READ;
+							
+							-- Need to wait CAS cycles - 1
+							delay <= to_unsigned(3-1, delay'length);
+							
+							-- This is actually the minimum time needed before the next command.
+							--delay <= (3 - 1);--to_unsigned(0, delay'length); -- tRC OR (tRAS + tRP) : 60 OR (42 + 15) : 60 OR 57: [ns] I guess I need to take the largest delay. So at 12 MHz, period 83 ns is plenty.
+						else
+							delay <= delay - 1;
+						end if;
+						
+					when WAIT_READ =>
+					
+						CS <= '1';
+						
+						if delay = 0 then
+							rstate <= DO_READ;
+							delay <= to_unsigned(1, delay'length); --(2-1); -- Burst length - 1
+						else
+							delay <= delay - 1;
+						end if;
+					
+					when DO_READ =>
+					
+						if delay = 0 then
+							
+							-- go to idle
+							istate <= IDLE;
+							state <= DONE;
+							--rreq_sticky_clear <= '1';
+							rack <= '1';
+						
+						else
+						
+							delay <= delay - 1;
+						
+						end if;
+					
+				end case;
 				
-					CS <= '1';
-					
-					if delay = 0 then
-						rstate <= DO_READ;
-						delay <= to_unsigned(1, delay'length); --(2-1); -- Burst length - 1
-					else
-						delay <= delay - 1;
-					end if;
-				
-				when DO_READ =>
-				
-					if delay = 0 then
-						
-						-- go to idle
-						istate <= IDLE;
-						state <= DONE;
-						--rreq_sticky_clear <= '1';
-						rack <= '1';
-					
-					else
-					
-						delay <= delay - 1;
-					
-					end if;
-				
-			end case;
+			when DONE =>
 			
-		when DONE =>
+				if rreq = '0' then
+					state <= IDLE;
+					rack <= '0';
+				end if;
+			
+			when others =>
+			
+		end case;
 		
-			if rreq = '0' then
-				state <= IDLE;
-				rack <= '0';
-			end if;
-		
-		when others =>
-		
-	end case;
+	end if;
 
 end if;
 
