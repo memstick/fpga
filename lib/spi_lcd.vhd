@@ -79,7 +79,7 @@ if falling_edge(clk) then
 				
 				if rreq = '1' then
 					
-					ddram( to_integer(unsigned(addr(5 downto 0))) ) <= data(7 downto 0);
+					ddram( to_integer(unsigned(addr(7 downto 2))) ) <= data(7 downto 0);
 					--debug <= std_logic_vector(test);
 					
 					debug(test) <= '1';

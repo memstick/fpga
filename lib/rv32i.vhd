@@ -32,7 +32,7 @@ architecture rtl of rv32i is
 
 -- Typedefs
 type t_cpu_state IS (ROM_INIT,INIT,FETCH,DECODE,EXECUTE,WRITEBACK,HALTED,ERROR);
-type t_ram_state IS (RAM_INIT,RAM_READ,RAM_WRITE,RAM_DONE);
+type t_ram_state IS (RAM_INIT,RAM_READ,RAM_READ2,RAM_WRITE,RAM_READ_DONE,RAM_WRITE_DONE);
 
 type t_reg_bank is array (0 to 31) of std_logic_vector(31 downto 0);
 
@@ -41,8 +41,8 @@ signal state : t_cpu_state := INIT;
 signal rstate : t_ram_state := RAM_INIT;
 
 -- MDR I/O (tristated)
-signal MDR_i : std_logic_vector(31 downto 0) := (others => '0');
-signal MDR_o : std_logic_vector(31 downto 0) := (others => '0');
+signal MDR_i : std_logic_vector(63 downto 0) := (others => '0');
+signal MDR_o : std_logic_vector(63 downto 0) := (others => '0');
 
 -- Program counter
 signal PC : unsigned( 31 downto 0 );
@@ -74,6 +74,9 @@ signal FUNCT7 : std_logic_vector(6 downto 0) := (others => '0');
 --signal rack_sticky : std_logic := '0';
 --signal rack_sticky_clear : std_logic := '0';
 
+signal read2   : std_logic := '0';
+signal write2  : std_logic := '0';
+
 begin
 
 -- I think this saves me for all that of checking on source registers
@@ -82,7 +85,7 @@ GPR_RS2 <= (others => '0') when RS2 = 0 else GPR(RS2);
 GPR(RD) <= GPR_RD when (RD /= 0) and (state = WRITEBACK);
 --GPR(RD) <= (others => '0') when RD = 0 else GPR_RD;
 
-debug <= std_logic_vector(PC(7 downto 0));
+debug <= std_logic_vector(PC(9 downto 2));
 
 --debug(3 downto 0) <= "0000" when state = ROM_INIT else
 --			"0001" when state = INIT else
@@ -105,10 +108,14 @@ debug <= std_logic_vector(PC(7 downto 0));
 --debug(6 downto 0) <= OP(6 downto 0);
 
 -- The MDR register must be tri-stated		
-MDR <= MDR_o when rstate = RAM_WRITE else (others => 'Z');
-MDR_i <= MDR;
+MDR <= MDR_o(31 downto 0) when (rstate = RAM_WRITE) else (others => 'Z');
+MDR_i(63 downto 32) <= MDR;
 
 process(clk,reset)
+
+-- I use this to figure out where in the word to read from in load/store logic
+variable offset : integer range 0 to 63;--std_logic_vector(1 downto 0);
+variable size    : integer range 0 to 32;
 
 -- DECODING PROCEDURES
 
@@ -275,42 +282,84 @@ begin
 			
 			rreq <= '1';
 			RW   <= '0';
-			MAR <= std_logic_vector(unsigned(IMM) + unsigned(GPR_RS1));
+					
+			MAR <= (std_logic_vector(unsigned(IMM) + unsigned(GPR_RS1))) and x"FFFFFFFC";
+			offset := to_integer(shift_left(unsigned(std_logic_vector(unsigned(IMM) + unsigned(GPR_RS1)) and x"00000003"), 3));
+			
+			--GPR_RD <= MDR_i;
 			
 			rstate <= RAM_READ;
+			
+			read2 <= '0';
+
+			case FUNCT3 is
+				when "010" => --LW
+					if offset > 0 then
+						read2 <= '1';
+					end if;
+				when "001" => --LH
+					if offset > 15 then
+						read2 <= '1';
+					end if;
+				when "101" => --LHU
+					if offset > 15 then
+						read2 <= '1';
+					end if;
+				when "000" => --LB
+				when "100" => --LBU
+				when others =>
+					-- Error
+			end case;
 		
 		when RAM_READ =>
 		
-			--rreq <= '1';
-			--GPR_RD <= MDR;
 			if rack = '1' then
 				
-				case FUNCT3 is
-					when "010" => --LW
-						GPR_RD <= MDR_i;
-					when "001" => --LH
-						GPR_RD <= std_logic_vector(resize(signed(MDR_i(15 downto 0)), 32));
-					when "101" => --LHU
-						GPR_RD <= MDR_i and x"0000FFFF";
-					when "000" => --LB
-						GPR_RD <= std_logic_vector(resize(signed(MDR_i(7 downto 0)), 32));
-					when "100" => --LBU
-						GPR_RD <= MDR_i and x"000000FF";
-					when others =>
-						-- Error
-				end case;
+				--MDR_i(31 downto 0) <= MDR_i((offset+31) downto offset);
+				MDR_i(31 downto 0) <= MDR_i(63 downto 32);
 				
-				
-				rstate <= RAM_DONE;
-				--state <= WRITEBACK;
+				rstate <= RAM_READ_DONE;
+
 			end if;
 			
-		when RAM_DONE =>
+		when RAM_READ2 =>
+		
+			if rack = '1' then
+			
+				rstate <= RAM_READ_DONE;
+				
+			end if;
+			
+		when RAM_READ_DONE =>
 		
 			rreq <= '0';
 		
 			if rack = '0' then
-				state <= WRITEBACK;
+			
+				if read2 = '1' then
+					rstate <= RAM_READ2;
+					MAR    <= (std_logic_vector(unsigned(IMM) + unsigned(GPR_RS1) + to_unsigned(4, 32))) and x"FFFFFFFC";
+					read2  <= '0';
+					rreq   <= '1';
+				else
+				
+					case FUNCT3 is
+						when "010" => --LW
+							GPR_RD <= MDR_i((offset + 31) downto offset);
+						when "001" => --LH
+								GPR_RD <= std_logic_vector(resize(signed(MDR_i((offset + 15) downto offset)), 32));
+						when "101" => --LHU
+									GPR_RD <= x"0000" & MDR_i((offset + 15) downto offset);
+						when "000" => --LB
+								GPR_RD <= std_logic_vector(resize(signed(MDR_i((offset + 7) downto offset)), 32));
+						when "100" => --LBU
+									GPR_RD <= x"000000" & MDR_i((offset + 7) downto offset);
+						when others =>
+							-- Error
+					end case;
+				
+					state <= WRITEBACK;
+				end if;
 			end if;
 				
 		when others =>
@@ -328,40 +377,133 @@ begin
 		when RAM_INIT =>
 			
 			rreq <= '1';
-			RW   <= '1';
-
+			
+			MAR <= (std_logic_vector(unsigned(IMM) + unsigned(GPR_RS1))) and x"FFFFFFFC";
+			offset := to_integer(shift_left(unsigned(std_logic_vector(unsigned(IMM) + unsigned(GPR_RS1)) and x"00000003"), 3));
+			
+			read2 <= '0';
+			write2 <= '0';
+			
 			case FUNCT3 is
 				when "000" => --SB
-					MDR_o <= GPR_RS2 and x"000000FF";
+				
+				
+				I morgen må du endre denne til RAM_READ og fikse logikken, du skriver bare en av fire bytes din gjøk!
+						--MDR_o((offset + 7) downto offset) <= GPR_RS2(7 downto 0);
+						rstate <= RAM_WRITE;
+						RW   <= '1';
+						rreq <= '1';
+
 				when "001" => --SH
-					MDR_o <= GPR_RS2 and x"0000FFFF";
+				
+					if offset > 16 then
+						
+						rstate <= RAM_READ;
+						read2 <= '1';
+						write2 <= '1';
+						RW   <= '0';
+					
+					else
+						MDR_o((offset + 15) downto offset) <= GPR_RS2(15 downto 0);
+						rstate <= RAM_WRITE;
+						RW   <= '1';
+						rreq <= '1';
+					end if;
+
 				when "010" => --SW
-					MDR_o <= GPR_RS2;
+					if offset > 0 then
+						
+						rstate <= RAM_READ;
+						read2 <= '1';
+						write2 <= '1';
+						RW   <= '0';
+					
+					else
+						MDR_o(31 downto 0) <= GPR_RS2;
+						rstate <= RAM_WRITE;
+						RW   <= '1';
+						rreq <= '1';
+					end if;
 				when others =>
 			end case;
-			MAR <= std_logic_vector(unsigned(IMM) + unsigned(GPR_RS1));
 			
-			rstate <= RAM_WRITE;
-
-		when RAM_WRITE =>
+		when RAM_READ =>
 		
-			--rreq <= '1';
 			if rack = '1' then
-				--state <= WRITEBACK;
-				rstate <= RAM_DONE;
+				
+				MDR_o(31 downto 0) <= MDR_i(63 downto 32);
+				
+				rstate <= RAM_READ_DONE;
+
 			end if;
 			
-		when RAM_DONE =>
+		when RAM_READ2 =>
+		
+			if rack = '1' then
+			
+				MDR_o(63 downto 32) <= MDR_i(63 downto 32);
+				
+				rstate <= RAM_READ_DONE;
+				
+			end if;
+			
+		when RAM_READ_DONE =>
 		
 			rreq <= '0';
 		
 			if rack = '0' then
-				state <= WRITEBACK;
+			
+				if read2 = '1' then
+					rstate <= RAM_READ2;
+					MAR    <= (std_logic_vector(unsigned(IMM) + unsigned(GPR_RS1) + to_unsigned(4, 32))) and x"FFFFFFFC";
+					read2  <= '0';
+					rreq   <= '1';
+				else
+					rstate <= RAM_WRITE;
+					
+					case FUNCT3 is
+						when "000" => -- SB
+							MDR_o((offset + 7) downto offset) <= GPR_RS2(7 downto 0);
+						when "001" => -- SH
+							MDR_o((offset + 15) downto offset) <= GPR_RS2(15 downto 0);
+						when "010" => -- SW
+							MDR_o((offset + 31) downto offset) <= GPR_RS2;
+						when others =>
+							-- Error!
+					end case;
+					
+					MAR <= (std_logic_vector(unsigned(IMM) + unsigned(GPR_RS1))) and x"FFFFFFFC";
+					RW <= '1';
+					rreq <= '1';
+				end if;	
+			end if;
+
+		when RAM_WRITE =>
+		
+			if rack = '1' then
+				rstate <= RAM_WRITE_DONE;
+			end if;
+			
+		when RAM_WRITE_DONE =>
+		
+			rreq <= '0';
+		
+			if rack = '0' then
+			
+				if write2 = '1' then
+				
+					MAR    <= (std_logic_vector(unsigned(IMM) + unsigned(GPR_RS1) + to_unsigned(4, 32))) and x"FFFFFFFC";
+					write2 <= '0';
+					rreq <= '1';
+					MDR_o(31 downto 0) <= MDR_o(63 downto 32);
+					rstate <= RAM_WRITE;
+				else
+					state <= WRITEBACK;
+				end if;
 			end if;
 			
 		when others =>
 			-- Error
-	
 	end case;
 
 end procedure rv32i_execute_s;
@@ -487,8 +629,6 @@ begin
 			
 			state <= ROM_INIT;
 			rstate <= RAM_INIT;
-			
-			--rack_sticky_clear <= '1';
 
 		else
 
@@ -502,11 +642,6 @@ begin
 					state <= FETCH;
 			
 				when FETCH =>
-				
---					MDR <= rom(to_integer(PC));
---					nPC <= PC + 4;
---					state <= DECODE;
---					rstate <= RAM_INIT;
 					
 					case rstate is
 					
@@ -515,7 +650,6 @@ begin
 							rreq <= '1';
 							RW <= '0';
 							MAR <= std_logic_vector(PC);
-							--debug <= std_logic_vector(PC)(31 downto 24);
 							rstate <= RAM_READ;
 							
 						when RAM_READ =>
@@ -523,11 +657,13 @@ begin
 							if rack = '1' then
 							
 								rreq <= '0';
-								rstate <= RAM_DONE;
+								rstate <= RAM_READ_DONE;
+								
+								MDR_i(31 downto 0) <= MDR_i(63 downto 32);
 								
 							end if;
 						
-						when RAM_DONE =>
+						when RAM_READ_DONE =>
 						
 							if rack = '0' then
 								

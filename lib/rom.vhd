@@ -170,82 +170,106 @@ signal data_o : std_logic_vector(31 downto 0);
 
 -- A ROM containing code.
 constant rom : t_rom := (
-	0  => rv32i_encode_lui((31 => '1', others => '0'), 5),
-	1  => rv32i_encode_addi(72, 0, 4),          -- imm, rs1, rd
-	2  => rv32i_encode_store(0, 4, 5, 2), 		  -- imm[offset],rs2[src],rs1[base],funct3[2:4B,1:2B,0:1B]
-	3  => rv32i_encode_addi(101, 0, 4),
-	4  => rv32i_encode_store(1, 4, 5, 2),
-	5  => rv32i_encode_addi(105, 0, 4),
-	6  => rv32i_encode_store(2, 4, 5, 2),
-	7  => rv32i_encode_addi(44, 0, 4),
-	8  => rv32i_encode_store(3, 4, 5, 2),
-	9  => rv32i_encode_addi(32, 0, 4),
-	10  => rv32i_encode_store(4, 4, 5, 2),
-	11  => rv32i_encode_addi(118, 0, 4),
-	12  => rv32i_encode_store(5, 4, 5, 2),
-	13  => rv32i_encode_addi(101, 0, 4),
-	14  => rv32i_encode_store(6, 4, 5, 2),
-	15  => rv32i_encode_addi(114, 0, 4),
-	16  => rv32i_encode_store(7, 4, 5, 2),
-	17  => rv32i_encode_addi(100, 0, 4),
-	18  => rv32i_encode_store(8, 4, 5, 2),
-	19  => rv32i_encode_addi(101, 0, 4),
-	20  => rv32i_encode_store(9, 4, 5, 2),
-	21  => rv32i_encode_addi(110, 0, 4),
-	22  => rv32i_encode_store(10, 4, 5, 2),
-	23  => rv32i_encode_addi(33, 0, 4),
-	24  => rv32i_encode_store(11, 4, 5, 2),
+--	0  => rv32i_encode_lui((31 => '1', others => '0'), 5),
+--	1  => rv32i_encode_addi(72, 0, 4),          -- imm, rs1, rd
+--	2  => rv32i_encode_store(0, 4, 5, 2), 		  -- imm[offset],rs2[src],rs1[base],funct3[2:4B,1:2B,0:1B]
+--	3  => rv32i_encode_addi(101, 0, 4),
+--	4  => rv32i_encode_store(4, 4, 5, 2),
+--	5  => rv32i_encode_addi(105, 0, 4),
+--	6  => rv32i_encode_store(8, 4, 5, 2),
+--	7  => rv32i_encode_addi(44, 0, 4),
+--	8  => rv32i_encode_store(12, 4, 5, 2),
+--	9  => rv32i_encode_addi(32, 0, 4),
+--	10  => rv32i_encode_store(16, 4, 5, 2),
+--	11  => rv32i_encode_addi(118, 0, 4),
+--	12  => rv32i_encode_store(20, 4, 5, 2),
+--	13  => rv32i_encode_addi(101, 0, 4),
+--	14  => rv32i_encode_store(24, 4, 5, 2),
+--	15  => rv32i_encode_addi(114, 0, 4),
+--	16  => rv32i_encode_store(28, 4, 5, 2),
+--	17  => rv32i_encode_addi(100, 0, 4),
+--	18  => rv32i_encode_store(32, 4, 5, 2),
+--	19  => rv32i_encode_addi(101, 0, 4),
+--	20  => rv32i_encode_store(36, 4, 5, 2),
+--	21  => rv32i_encode_addi(110, 0, 4),
+--	22  => rv32i_encode_store(40, 4, 5, 2),
+--	23  => rv32i_encode_addi(33, 0, 4),
+--	24  => rv32i_encode_store(44, 4, 5, 2),
+----	
+--	25  => rv32i_encode_addi(94, 0, 4),          -- imm, rs1, rd
+--	26  => rv32i_encode_store(48, 4, 0, 2), 		  -- imm[offset],rs2[src],rs1[base],funct3[2:4B,1:2B,0:1B]
+--	27  => rv32i_encode_load(12, 0, 2, '0', 4),   -- imm[offset],         rs1[base],funct3,extend?,rd
+--	28  => rv32i_encode_store(160, 4, 5, 2), 		  -- imm[offset],rs2[src],rs1[base],funct3[2:4B,1:2B,0:1B]
+--	29  => rv32i_encode_store(164, 4, 5, 2), 		  -- imm[offset],rs2[src],rs1[base],funct3[2:4B,1:2B,0:1B]
+--	30  => rv32i_encode_addi(47, 0, 4),          -- imm, rs1, rd
+--	31  => rv32i_encode_store(168, 4, 5, 2), 		  -- imm[offset],rs2[src],rs1[base],funct3[2:4B,1:2B,0:1B]
+--
+--
+--	-- Init sequence
+--	32  => rv32i_encode_lui((19 => '1', others => '0'), 1), -- Num cycles before break
+--	33  => rv32i_encode_addi(0, 0, 2), -- Our cycle count before increment
+--	34  => rv32i_encode_addi(58, 0, 3), -- End of count
+--	35  => rv32i_encode_addi(48, 0, 4), -- Current decimal
 --	
-	25  => rv32i_encode_addi(94, 0, 4),          -- imm, rs1, rd
-	26  => rv32i_encode_store(12, 4, 0, 2), 		  -- imm[offset],rs2[src],rs1[base],funct3[2:4B,1:2B,0:1B]
-	27  => rv32i_encode_load(12, 0, 2, '0', 4),   -- imm[offset],         rs1[base],funct3,extend?,rd
-	28  => rv32i_encode_store(40, 4, 5, 2), 		  -- imm[offset],rs2[src],rs1[base],funct3[2:4B,1:2B,0:1B]
-	29  => rv32i_encode_store(41, 4, 5, 2), 		  -- imm[offset],rs2[src],rs1[base],funct3[2:4B,1:2B,0:1B]
-	30  => rv32i_encode_addi(47, 0, 4),          -- imm, rs1, rd
-	31  => rv32i_encode_store(42, 4, 5, 2), 		  -- imm[offset],rs2[src],rs1[base],funct3[2:4B,1:2B,0:1B]
+--	36  => rv32i_encode_addi(47, 0, 6),
+--	37  => rv32i_encode_store(4, 6, 0, 1), -- here
+--	38  => rv32i_encode_addi(124, 0, 6),
+--			
+--			
+--		 	-- Start loop here
+--	--C: 
+--	39  => rv32i_encode_store(168, 6, 5, 2),
+--	40  => rv32i_encode_load(4, 0, 2, '0', 7),
+--	41  => rv32i_encode_store(4, 6, 0, 1), -- here
+--	42  => rv32i_encode_addi(0, 7, 6),
+--	43  => rv32i_encode_store(136, 4, 5, 2),
+--	44  => rv32i_encode_addi(1, 4, 4), 			-- Increment	
+--	45  => rv32i_encode_cbranch(20 , 3, 4, 0 ), 	-- A!! imm, rs1, rs2, funct3:BE; check if we counted to 9
+--	--B: 
+--	46  => rv32i_encode_addi(1, 2, 2), 			-- inc cycle counter
+--	47  => rv32i_encode_cbranch(-4 , 1, 2, 1 ), 	-- B!! imm, rs1, rs2, funct3:BNE; check if we counted to num cycles
+--	48  => rv32i_encode_addi(0, 0, 2), 				-- Restore our cycle counter to 0
+--	49  => rv32i_encode_jal(-40, 0), --C!!
+--		-- Reset decimal counter
+--	--A:
+--	50  => rv32i_encode_addi(48, 0, 4),
+--	51  => rv32i_encode_jal(-20, 0),
+--	52  => x"00000000",
+	
+0 => x"00001137",
+1 => x"0500006f",
+2 => x"400006b7",
+3 => x"0806a783",
+4 => x"00000713",
+5 => x"800005b7",
+6 => x"02f00813",
+7 => x"00052603",
+8 => x"00061863",
+9 => x"00070463",
+10 => x"08f6a023",
+11 => x"00008067",
+12 => x"00279713",
+13 => x"00b70733",
+14 => x"00c72023",
+15 => x"00178793",
+16 => x"00450513",
+17 => x"00f87463",
+18 => x"00000793",
+19 => x"00100713",
+20 => x"fcdff06f",
+21 => x"40000537",
+22 => x"ff010113",
+23 => x"06c50513",
+24 => x"00112623",
+25 => x"fa5ff0ef",
+26 => x"0000006f",
+27 => x"00000065",
+28 => x"00000066",
+29 => x"00000067",
+30 => x"00000068",
+31 => x"00000000",
 
 
-	-- Init sequence
-	32  => rv32i_encode_lui((19 => '1', others => '0'), 1), -- Num cycles before break
-	33  => rv32i_encode_addi(0, 0, 2), -- Our cycle count before increment
-	34  => rv32i_encode_addi(58, 0, 3), -- End of count
-	35  => rv32i_encode_addi(48, 0, 4), -- Current decimal
-	
-	36  => rv32i_encode_addi(47, 0, 6),
-	37  => rv32i_encode_store(4, 6, 0, 2),
-	38  => rv32i_encode_addi(124, 0, 6),
-			
-			
-		 	-- Start loop here
-	--C: 
-	39  => rv32i_encode_store(42, 6, 5, 2),
-	40  => rv32i_encode_load(4, 0, 2, '0', 7),
-	41  => rv32i_encode_store(4, 6, 0, 2),
-	42  => rv32i_encode_addi(0, 7, 6),
-	43  => rv32i_encode_store(34, 4, 5, 2),
-	44  => rv32i_encode_addi(1, 4, 4), 			-- Increment	
-	45  => rv32i_encode_cbranch(20 , 3, 4, 0 ), 	-- A!! imm, rs1, rs2, funct3:BE; check if we counted to 9
-	--B: 
-	46  => rv32i_encode_addi(1, 2, 2), 			-- inc cycle counter
-	47  => rv32i_encode_cbranch(-4 , 1, 2, 1 ), 	-- B!! imm, rs1, rs2, funct3:BNE; check if we counted to num cycles
-	48  => rv32i_encode_addi(0, 0, 2), 				-- Restore our cycle counter to 0
-	49  => rv32i_encode_jal(-40, 0), --C!!
-		-- Reset decimal counter
-	--A:
-	50  => rv32i_encode_addi(48, 0, 4),
-	51  => rv32i_encode_jal(-20, 0),
-	
---	32  => rv32i_encode_addi(94, 0, 4),          -- imm, rs1, rd
---	33  => rv32i_encode_store(4, 4, 0, 2), 		  -- imm[offset],rs2[src],rs1[base],funct3[2:4B,1:2B,0:1B]
---	34  => rv32i_encode_addi(1, 4, 4),          -- imm, rs1, rd
---	35  => rv32i_encode_store(8, 4, 0, 2), 		  -- imm[offset],rs2[src],rs1[base],funct3[2:4B,1:2B,0:1B]
---	36  => rv32i_encode_load(4, 0, 2, '0', 4),   -- imm[offset],         rs1[base],funct3,extend?,rd
---	37  => rv32i_encode_store(43, 4, 5, 2), 		  -- imm[offset],rs2[src],rs1[base],funct3[2:4B,1:2B,0:1B]
---	38  => rv32i_encode_load(8, 0, 2, '0', 4),   -- imm[offset],         rs1[base],funct3,extend?,rd
---	39  => rv32i_encode_store(44, 4, 5, 2), 		  -- imm[offset],rs2[src],rs1[base],funct3[2:4B,1:2B,0:1B]
-	
-	--44 => rv32i_encode_jal(0, 0),              -- imm[offset],rd
-	
 	others => (others => '0')
 );
 
