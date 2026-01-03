@@ -1,10 +1,7 @@
 
 #define VIDEOBUFFER_P 0x80000000
 
-static unsigned int position = 0;
-
-#if 1
-void print(int * s){
+void print(const char * s, int position){
 	volatile unsigned int *p = (unsigned int *) VIDEOBUFFER_P;
 	while(*s){
 		p[position] = *((unsigned int *)s);
@@ -14,35 +11,43 @@ void print(int * s){
 			position = 0;
 	}
 }
-#endif
 
-const int arr[5] = {101,102,103,104,0};
+void printChar(const char * s, int position){
+	volatile unsigned int *p = (unsigned int *) VIDEOBUFFER_P;
+	p[position] = *((unsigned int *)s);
+}
+
+void printInt(int i, int position){
+
+	char c = 48 + i;
+
+	printChar(&c, position);
+}
+
+void delay(){
+	volatile int i;
+	for(i=0; i < 100000; i++){
+		(void) i;
+	}
+}
 
 int main(){
-	unsigned int *p = (unsigned int *) VIDEOBUFFER_P;
-	print(arr);
-	//print("Hey,verden!");
-#if 0
-	if(0){
-		*p = arr[0];
-		p++;
-		*p = arr[1];
-		p++;
-		*p = arr[2];
-		p++;
-		*p = arr[3];
-	}
-#endif
 
-	while(1);
+	int dram_ascii = 0;
+
+	print("Hei, verden!", 0);
+
+	while(1){
+		print("^^/", 20);
+		delay();
+
+		print("^^|", 20);
+		delay();
+
+		printInt(dram_ascii, 16);
+		dram_ascii++;
+		if(dram_ascii > 9) dram_ascii = 0;
+	}
 	return 0;
 }
 
-/*
-void  __attribute__((section(".initf"))) early_init(){
-	
-	__asm__("li sp, 0\r\n");
-	main();
-
-}
-*/
