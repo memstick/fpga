@@ -37,9 +37,17 @@ def write_toml(out_path: Path, libraries: dict[str, list[str]]) -> None:
     out_path.write_text("\n".join(lines), encoding="utf-8")
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Generate vhdl_ls.toml (one library per lib/* subdir).")
+    ap = argparse.ArgumentParser(
+        description="Generate vhdl_ls.toml (one library per lib/* subdir, plus per-project files)."
+    )
     ap.add_argument("--repo", type=Path, default=Path.cwd(), help="Repo root (default: cwd)")
     ap.add_argument("--lib", type=Path, default=Path("lib"), help='Repo-relative lib dir (default: "lib")')
+    ap.add_argument(
+        "--projects",
+        type=Path,
+        default=Path("projects"),
+        help='Repo-relative projects dir (default: "projects")',
+    )
     ap.add_argument("--quartus", type=Path, default=None, help="Directory containing Quartus VHDL files")
     ap.add_argument("--quartus-lib", type=str, default="quartus", help='Library name for Quartus files')
     ap.add_argument("--out", type=Path, default=Path("vhdl_ls.toml"), help='Output file (default: "vhdl_ls.toml")')
@@ -48,6 +56,7 @@ def main() -> int:
     repo_root = args.repo.resolve()
     lib_root = (repo_root / args.lib).resolve() if not args.lib.is_absolute() else args.lib.resolve()
     out_path = (repo_root / args.out).resolve() if not args.out.is_absolute() else args.out.resolve()
+    projects_root = (repo_root / args.projects).resolve() if not args.projects.is_absolute() else args.projects.resolve()
     quartus_dir = args.quartus.resolve() if args.quartus else None
 
     if not lib_root.exists():
@@ -62,6 +71,14 @@ def main() -> int:
         files = [repo_rel_or_abs_posix(p, repo_root) for p in find_vhdl_files(d)]
         if files:
             libraries[libname] = files
+
+    # One VHDL library per immediate subdirectory of projects/
+    if projects_root.exists():
+        for d in immediate_subdirs(projects_root):
+            libname = d.name
+            files = [repo_rel_or_abs_posix(p, repo_root) for p in find_vhdl_files(d)]
+            if files:
+                libraries[libname] = files
 
     # Quartus files in their own library
     if quartus_dir:
@@ -80,4 +97,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

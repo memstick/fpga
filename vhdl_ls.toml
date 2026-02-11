@@ -1,0 +1,43 @@
+# Auto-generated. Do not edit by hand.
+[libraries]
+riscv_common.files = [
+  "lib/riscv_common/rv32i_global.vhd",
+]
+
+rv32i.files = [
+  "lib/rv32i/rv32i.vhd",
+]
+
+sdram.files = [
+  "lib/sdram/sdram_ctrl.vhd",
+]
+
+utils.files = [
+  "lib/utils/cdc_sync.vhd",
+  "lib/utils/const0.vhd",
+  "lib/utils/const1.vhd",
+  "lib/utils/cpu.vhd",
+  "lib/utils/crossbar.vhd",
+  "lib/utils/divider.vhd",
+  "lib/utils/pll.vhd",
+  "lib/utils/reset.vhd",
+  "lib/utils/resettest.vhd",
+  "lib/utils/rom.vhd",
+  "lib/utils/spi_lcd.vhd",
+  "lib/utils/uart_rx.vhd",
+  "lib/utils/uart_rx_iso.vhd",
+  "lib/utils/uart_tx.vhd",
+  "lib/utils/uart_tx_iso.vhd",
+]
+
+max1000_blinky.files = [
+  "projects/max1000_blinky/led_counter.vhd",
+  "projects/max1000_blinky/max1000_blinky.vhd",
+  "projects/max1000_blinky/max1000_blinky_top.vhd",
+  "projects/max1000_blinky/pll15m.vhd",
+]
+
+max1000_riscv.files = [
+  "projects/max1000_riscv/max1000_riscv_top.vhd",
+  "projects/max1000_riscv/pll15m.vhd",
+]

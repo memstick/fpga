@@ -1,0 +1,56 @@
+# Device and top-level
+set_global_assignment -name FAMILY "MAX 10"
+set_global_assignment -name DEVICE 10M16SAU169C8G
+set_global_assignment -name TOP_LEVEL_ENTITY max1000_riscv_top
+set_global_assignment -name VHDL_FILE max1000_riscv_top.vhd
+set_global_assignment -name SDC_FILE max1000_riscv.sdc
+
+# PLL IP
+set_global_assignment -name QIP_FILE pll15m.qip
+
+# Libraries (lib/ subfolders)
+set_global_assignment -name VHDL_FILE ../../lib/riscv_common/rv32i_global.vhd -library riscv_common
+set_global_assignment -name VHDL_FILE ../../lib/rv32i/rv32i.vhd -library rv32i
+set_global_assignment -name VHDL_FILE ../../lib/sdram/sdram_ctrl.vhd -library sdram
+set_global_assignment -name VHDL_FILE ../../lib/utils/const0.vhd -library utils
+set_global_assignment -name VHDL_FILE ../../lib/utils/const1.vhd -library utils
+set_global_assignment -name VHDL_FILE ../../lib/utils/cpu.vhd -library utils
+set_global_assignment -name VHDL_FILE ../../lib/utils/cdc_sync.vhd -library utils
+set_global_assignment -name VHDL_FILE ../../lib/utils/crossbar.vhd -library utils
+set_global_assignment -name VHDL_FILE ../../lib/utils/divider.vhd -library utils
+set_global_assignment -name VHDL_FILE ../../lib/utils/pll.vhd -library utils
+set_global_assignment -name VHDL_FILE ../../lib/utils/reset.vhd -library utils
+set_global_assignment -name VHDL_FILE ../../lib/utils/resettest.vhd -library utils
+set_global_assignment -name VHDL_FILE ../../lib/utils/rom.vhd -library utils
+set_global_assignment -name VHDL_FILE ../../lib/utils/spi_lcd.vhd -library utils
+set_global_assignment -name VHDL_FILE ../../lib/utils/uart_rx.vhd -library utils
+set_global_assignment -name VHDL_FILE ../../lib/utils/uart_rx_iso.vhd -library utils
+set_global_assignment -name VHDL_FILE ../../lib/utils/uart_tx.vhd -library utils
+set_global_assignment -name VHDL_FILE ../../lib/utils/uart_tx_iso.vhd -library utils
+
+# Clock input (12 MHz on H6)
+set_location_assignment PIN_H6 -to clk_in
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to clk_in
+
+# LED pins (LED0..LED7)
+set_location_assignment PIN_A8 -to leds[0]
+set_location_assignment PIN_A9 -to leds[1]
+set_location_assignment PIN_A11 -to leds[2]
+set_location_assignment PIN_A10 -to leds[3]
+set_location_assignment PIN_B10 -to leds[4]
+set_location_assignment PIN_C9 -to leds[5]
+set_location_assignment PIN_C10 -to leds[6]
+set_location_assignment PIN_D8 -to leds[7]
+
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to leds
+
+set_global_assignment -name LAST_QUARTUS_VERSION "24.1std.0 Lite Edition"
+
+set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
+set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
+set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
+set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
+set_global_assignment -name VHDL_INPUT_VERSION VHDL_1993
+set_global_assignment -name VHDL_SHOW_LMF_MAPPING_MESSAGES OFF
+set_global_assignment -name FLOW_ENABLE_POWER_ANALYZER ON
+set_global_assignment -name POWER_DEFAULT_INPUT_IO_TOGGLE_RATE "12.5 %"

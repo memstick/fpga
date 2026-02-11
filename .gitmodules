@@ -1,0 +1,7 @@
+[submodule "uvvm"]
+    path = third_party/uvvm
+    url = https://github.com/UVVM/UVVM.git
+    branch = master
+[submodule "third_party/uvvm"]
+	path = third_party/uvvm
+	url = https://github.com/UVVM/UVVM.git
