@@ -10,3 +10,7 @@ This repo contains small FPGA projects, demos, and reusable blocks.
 - `projects/` : Quartus projects per board
 - `lib/`      : reusable VHDL blocks
 - `demos/`    : quick experiments
+
+## Simulation (NVC)
+- Compile UVVM: `scripts/compile_uvvm_nvc.sh`
+- Run reset TB: `scripts/run_reset_tb_nvc.sh`

@@ -15,6 +15,11 @@ if [[ -f "$uvvm_dir/.git" ]] && [[ ! -d "$uvvm_dir/script" ]]; then
   exit 4
 fi
 
+if ! command -v nvc >/dev/null 2>&1; then
+  echo "nvc not found in PATH" >&2
+  exit 5
+fi
+
 mkdir -p "$out_dir"
 
 compile_script="$uvvm_dir/script/compile_all.sh"
@@ -23,6 +28,6 @@ if [[ ! -f "$compile_script" ]]; then
   exit 3
 fi
 
-bash "$compile_script" ghdl "$out_dir"
+bash "$compile_script" nvc "$out_dir"
 
-echo "UVVM compiled to $out_dir"
+echo "UVVM compiled to $out_dir/nvc"
