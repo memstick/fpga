@@ -37,6 +37,8 @@ architecture rtl of max1000_riscv_top is
   signal pll_ok_sync_vec : std_logic_vector(0 downto 0);
 
   signal reset       : std_logic;
+  signal reset_200k  : std_logic;
+  signal reset_200k_vec : std_logic_vector(0 downto 0);
   signal rack        : std_logic;
   signal mar         : std_logic_vector(31 downto 0);
   signal mdr         : std_logic_vector(31 downto 0);
@@ -89,6 +91,20 @@ begin
       pll_lock => pll_ok_sync,
       reset_o  => reset
     );
+
+  u_reset_200k_sync : entity utils.cdc_sync
+    generic map (
+      WIDTH  => 1,
+      STAGES => 2
+    )
+    port map (
+      clk  => clk_200k,
+      din  => (0 => reset),
+      dout => reset_200k_vec
+    );
+
+  -- Synchronize reset deassertion into clk_200k domain.
+  reset_200k <= reset_200k_vec(0);
 
   u_cpu : entity rv32i.rv32i
     port map (
@@ -165,7 +181,7 @@ begin
   u_lcd : entity utils.spi_lcd
     port map (
       clk_200k => clk_200k,
-      reset   => reset,
+      reset   => reset_200k,
       addr    => xbar_b_addr,
       data    => xbar_b_data,
       rw      => xbar_b_rw,

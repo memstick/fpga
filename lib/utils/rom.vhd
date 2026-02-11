@@ -2,7 +2,8 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.ALL;
 
-use work.rv32i_global.all; -- Assuming your package is compiled into the 'work' library
+library riscv_common;
+use riscv_common.rv32i_global.all;
  
 entity rom is
   port (
@@ -409,5 +410,4 @@ begin
 end process;
 
 end rtl;
-
 
