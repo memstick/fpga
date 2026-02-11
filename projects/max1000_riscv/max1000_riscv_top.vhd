@@ -21,12 +21,17 @@ entity max1000_riscv_top is
     sdram_we  : out std_logic;
     sdram_cs  : out std_logic;
     sdram_dq  : inout std_logic_vector(15 downto 0);
-    sdram_dqm : out std_logic_vector(1 downto 0)
+    sdram_dqm : out std_logic_vector(1 downto 0);
+    spi_data  : out std_logic;
+    spi_clk   : out std_logic;
+    spi_rs    : out std_logic;
+    spi_rst   : out std_logic
   );
 end entity max1000_riscv_top;
 
 architecture rtl of max1000_riscv_top is
   signal clk_sys     : std_logic;
+  signal clk_200k    : std_logic;
   signal pll_ok      : std_logic;
   signal pll_ok_sync : std_logic;
   signal pll_ok_sync_vec : std_logic_vector(0 downto 0);
@@ -44,16 +49,23 @@ architecture rtl of max1000_riscv_top is
   signal xbar_a_rw   : std_logic;
   signal xbar_a_rack : std_logic;
 
+  signal xbar_b_addr : std_logic_vector(31 downto 0);
+  signal xbar_b_data : std_logic_vector(31 downto 0);
+  signal xbar_b_rreq : std_logic;
+  signal xbar_b_rw   : std_logic;
+  signal xbar_b_rack : std_logic;
+
   signal xbar_c_addr : std_logic_vector(31 downto 0);
   signal xbar_c_data : std_logic_vector(31 downto 0);
   signal xbar_c_rreq : std_logic;
   signal xbar_c_rw   : std_logic;
   signal xbar_c_rack : std_logic;
 begin
-  u_pll : entity work.pll15m
+  u_pll : entity work.sys_pll
     port map (
       inclk0 => clk_in,
       c0     => clk_sys,
+      c1     => clk_200k,
       locked => pll_ok
     );
 
@@ -103,11 +115,11 @@ begin
       a_rreq => xbar_a_rreq,
       a_rw   => xbar_a_rw,
       a_rack => xbar_a_rack,
-      b_addr => open,
-      b_data => open,
-      b_rreq => open,
-      b_rw   => open,
-      b_rack => '0',
+      b_addr => xbar_b_addr,
+      b_data => xbar_b_data,
+      b_rreq => xbar_b_rreq,
+      b_rw   => xbar_b_rw,
+      b_rack => xbar_b_rack,
       c_addr => xbar_c_addr,
       c_data => xbar_c_data,
       c_rreq => xbar_c_rreq,
@@ -148,6 +160,23 @@ begin
       rreq  => xbar_c_rreq,
       rack  => xbar_c_rack,
       debug => open
+    );
+
+  u_lcd : entity utils.spi_lcd
+    port map (
+      clk_200k => clk_200k,
+      reset   => reset,
+      addr    => xbar_b_addr,
+      data    => xbar_b_data,
+      rw      => xbar_b_rw,
+      rreq    => xbar_b_rreq,
+      clk     => clk_sys,
+      spi_data => spi_data,
+      spi_clk  => spi_clk,
+      spi_rst  => spi_rst,
+      spi_rs   => spi_rs,
+      rack    => xbar_b_rack,
+      debug   => open
     );
 
   leds <= (others => '0');
