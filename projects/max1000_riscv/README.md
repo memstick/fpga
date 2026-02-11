@@ -15,6 +15,9 @@ This is configured in `max1000_riscv.qsf` using per-file `-library` assignments.
 `max1000_riscv_top.vhd` instantiates:
 - `pll15m` (12 MHz → 15 MHz)
 - `rv32i` core
+- `utils.crossbar` (port A → SDRAM, port C → ROM)
+- `sdram.sdram_ctrl`
+- `utils.rom`
 
 The CPU debug bus is left unconnected. The memory/bus signals are tied off and
 intended to be replaced with real memory and peripherals. The LED outputs are

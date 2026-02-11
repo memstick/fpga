@@ -43,6 +43,12 @@ architecture rtl of max1000_riscv_top is
   signal xbar_a_rreq : std_logic;
   signal xbar_a_rw   : std_logic;
   signal xbar_a_rack : std_logic;
+
+  signal xbar_c_addr : std_logic_vector(31 downto 0);
+  signal xbar_c_data : std_logic_vector(31 downto 0);
+  signal xbar_c_rreq : std_logic;
+  signal xbar_c_rw   : std_logic;
+  signal xbar_c_rack : std_logic;
 begin
   u_pll : entity work.pll15m
     port map (
@@ -102,11 +108,11 @@ begin
       b_rreq => open,
       b_rw   => open,
       b_rack => '0',
-      c_addr => open,
-      c_data => open,
-      c_rreq => open,
-      c_rw   => open,
-      c_rack => '0',
+      c_addr => xbar_c_addr,
+      c_data => xbar_c_data,
+      c_rreq => xbar_c_rreq,
+      c_rw   => xbar_c_rw,
+      c_rack => xbar_c_rack,
       debug  => open
     );
 
@@ -129,6 +135,18 @@ begin
       DQ    => sdram_dq,
       DQM   => sdram_dqm,
       rack  => xbar_a_rack,
+      debug => open
+    );
+
+  u_rom : entity utils.rom
+    port map (
+      clk   => clk_sys,
+      reset => reset,
+      addr  => xbar_c_addr,
+      rw    => xbar_c_rw,
+      data  => xbar_c_data,
+      rreq  => xbar_c_rreq,
+      rack  => xbar_c_rack,
       debug => open
     );
 
