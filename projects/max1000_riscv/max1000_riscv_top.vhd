@@ -118,29 +118,38 @@ begin
     );
 
   u_xbar : entity utils.crossbar
+    generic map ( g_num_ports => 3 )
     port map (
       clk   => clk_sys,
       reset => reset,
-      addr  => mar,
-      data  => mdr,
-      rreq  => rreq,
-      rw    => rw,
-      rack  => rack,
-      a_addr => xbar_a_addr,
-      a_data => xbar_a_data,
-      a_rreq => xbar_a_rreq,
-      a_rw   => xbar_a_rw,
-      a_rack => xbar_a_rack,
-      b_addr => xbar_b_addr,
-      b_data => xbar_b_data,
-      b_rreq => xbar_b_rreq,
-      b_rw   => xbar_b_rw,
-      b_rack => xbar_b_rack,
-      c_addr => xbar_c_addr,
-      c_data => xbar_c_data,
-      c_rreq => xbar_c_rreq,
-      c_rw   => xbar_c_rw,
-      c_rack => xbar_c_rack,
+      
+		addr_m  => mar,
+      data_m  => mdr,
+      rreq_m  => rreq,
+      rw_m    => rw,
+      rack_m  => rack,
+		
+		port_match(0) 	=> "0000",
+		addr_s(0) 		=> xbar_a_addr,
+		data_s(0) 		=> xbar_a_data,
+		rreq_s(0) 		=> xbar_a_rreq,
+		rw_s(0)   		=> xbar_a_rw,
+		rack_s(0) 		=> xbar_a_rack,
+		
+		port_match(1) 	=> "1000",
+		addr_s(1) 		=> xbar_b_addr,
+		data_s(1) 		=> xbar_b_data,
+		rreq_s(1) 		=> xbar_b_rreq,
+		rw_s(1)   		=> xbar_b_rw,
+		rack_s(1) 		=> xbar_b_rack,
+		
+		port_match(2) 	=> "0100",
+		addr_s(2) 		=> xbar_c_addr,
+		data_s(2) 		=> xbar_c_data,
+		rreq_s(2) 		=> xbar_c_rreq,
+		rw_s(2)   		=> xbar_c_rw,
+		rack_s(2) 		=> xbar_c_rack,
+
       debug  => open
     );
 
