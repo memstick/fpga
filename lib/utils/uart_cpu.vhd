@@ -94,7 +94,6 @@ signal tx_bit_cnt : integer range 0 to 31;
 signal u_read       : std_logic_vector(7 downto 0);
 signal u_write      : std_logic_vector(7 downto 0);
 signal u_wr_busy    : std_logic;
-signal u_wr_en      : std_logic;
 signal u_rd_ready   : std_logic;
 signal u_rd_ack     : std_logic;
 
@@ -111,8 +110,16 @@ signal c_wr_busy_sync  : std_logic;
 signal c_rd_ready_sync : std_logic;
 signal u_wr_en_sync    : std_logic;
 
+signal u_rd_ack_vec        : std_logic_vector(0 downto 0);
+signal c_wr_busy_sync_vec  : std_logic_vector(0 downto 0);
+signal u_wr_en_sync_vec    : std_logic_vector(0 downto 0);
+signal c_rd_ready_sync_vec : std_logic_vector(0 downto 0);
+
 signal reset_uart_vec  : std_logic_vector(0 downto 0);
 signal reset_uart      : std_logic;
+
+signal data_i : std_logic_vector(31 downto 0);
+signal data_o : std_logic_vector(31 downto 0);
 
 function make_control_reg(
    rd_valid : in std_logic;
@@ -128,6 +135,8 @@ begin
 end function make_control_reg;
 
 begin
+    data <= data_o when rw = '0' else (others => 'Z');
+    data_i <= data;
 
     read_sync : entity utils.cdc_sync
       generic map(
@@ -159,7 +168,7 @@ begin
     port map(
          clk => clk_uart,
          din => (0 => c_rd_ack),
-         dout => (0 => u_rd_ack)
+         dout => u_rd_ack_vec
     );
 
     u_wr_busy_sync : entity utils.cdc_sync
@@ -170,10 +179,10 @@ begin
     port map(
          clk => clk_cpu,
          din => (0 => u_wr_busy),
-         dout => (0 => c_wr_busy_sync)
+         dout => c_wr_busy_sync_vec
     );
 
-    u_wr_en_sync : entity utils.cdc_sync
+    u_wr_en_sync_inst : entity utils.cdc_sync
       generic map(
          WIDTH => 1,
          STAGES => 2
@@ -181,7 +190,7 @@ begin
     port map(
          clk => clk_uart,
          din => (0 => c_wr_en),
-         dout => (0 => u_wr_en_sync)
+         dout => u_wr_en_sync_vec
     );
 
     u_rd_ready_sync : entity utils.cdc_sync
@@ -192,7 +201,7 @@ begin
     port map(
          clk => clk_cpu,
          din => (0 => u_rd_ready),
-         dout => (0 => c_rd_ready_sync)
+         dout => c_rd_ready_sync_vec
     );
 
     reset_uart_sync : entity utils.cdc_sync
@@ -207,6 +216,10 @@ begin
     );
 
     reset_uart <= reset_uart_vec(0);
+    u_rd_ack <= u_rd_ack_vec(0);
+    c_wr_busy_sync <= c_wr_busy_sync_vec(0);
+    u_wr_en_sync <= u_wr_en_sync_vec(0);
+    c_rd_ready_sync <= c_rd_ready_sync_vec(0);
 
 process(clk_cpu)
 
@@ -222,8 +235,10 @@ begin
         c_wr_en <= '0';
         --c_wr_busy <= '0';
         c_rd_ack <= '0';
+        data_o <= (others => '0');
 
     elsif rising_edge(clk_cpu) then
+        data_o <= (others => '0');
 
         c_rd_valid := c_rd_ready_sync and (not c_rd_ack);
         c_wr_ready := (not c_wr_busy_sync) and (not c_wr_en);
@@ -245,7 +260,7 @@ begin
                 elsif addr(3 downto 0) = "1000" then -- Write data
 
                     if c_wr_ready = '1' then
-                        c_write <= data(7 downto 0);
+                        c_write <= data_i(7 downto 0);
                         c_wr_en <= '1';
                     end if;
                 else
@@ -256,11 +271,11 @@ begin
 
                 if addr(3 downto 0) = "0000" then -- Read control
 
-                    data <= make_control_reg(c_rd_valid, c_wr_busy_sync);
+                    data_o <= make_control_reg(c_rd_valid, c_wr_busy_sync);
 
                 elsif addr(3 downto 0) = "0100" then -- Read data
 
-                    data <= x"000000" & c_read;
+                    data_o <= x"000000" & c_read;
 
                     if c_rd_ready_sync = '1' then
                         c_rd_ack <= '1';
