@@ -23,6 +23,7 @@ set_global_assignment -name VHDL_FILE ../../lib/utils/reset.vhd -library utils
 set_global_assignment -name VHDL_FILE ../../lib/utils/resettest.vhd -library utils
 set_global_assignment -name VHDL_FILE ../../lib/utils/rom.vhd -library utils
 set_global_assignment -name VHDL_FILE ../../lib/utils/spi_lcd.vhd -library utils
+set_global_assignment -name VHDL_FILE ../../lib/utils/uart_cpu.vhd -library utils
 set_global_assignment -name VHDL_FILE ../../lib/utils/uart_rx.vhd -library utils
 set_global_assignment -name VHDL_FILE ../../lib/utils/uart_rx_iso.vhd -library utils
 set_global_assignment -name VHDL_FILE ../../lib/utils/uart_tx.vhd -library utils
@@ -107,6 +108,12 @@ set_location_assignment PIN_J10 -to spi_rs
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to spi_rs
 set_location_assignment PIN_G12 -to spi_rst
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to spi_rst
+
+# UART (J1 header D0/D1)
+set_location_assignment PIN_H8  -to uart_rx
+set_location_assignment PIN_K10 -to uart_tx
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to uart_rx
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to uart_tx
 
 set_global_assignment -name LAST_QUARTUS_VERSION "24.1std.0 Lite Edition"
 

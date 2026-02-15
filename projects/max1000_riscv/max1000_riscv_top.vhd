@@ -25,7 +25,9 @@ entity max1000_riscv_top is
     spi_data  : out std_logic;
     spi_clk   : out std_logic;
     spi_rs    : out std_logic;
-    spi_rst   : out std_logic
+    spi_rst   : out std_logic;
+    uart_rx   : in  std_logic;
+    uart_tx   : out std_logic
   );
 end entity max1000_riscv_top;
 
@@ -62,6 +64,11 @@ architecture rtl of max1000_riscv_top is
   signal xbar_c_rreq : std_logic;
   signal xbar_c_rw   : std_logic;
   signal xbar_c_rack : std_logic;
+  signal xbar_d_addr : std_logic_vector(31 downto 0);
+  signal xbar_d_data : std_logic_vector(31 downto 0);
+  signal xbar_d_rreq : std_logic;
+  signal xbar_d_rw   : std_logic;
+  signal xbar_d_rack : std_logic;
 begin
   u_pll : entity work.sys_pll
     port map (
@@ -118,7 +125,7 @@ begin
     );
 
   u_xbar : entity utils.crossbar
-    generic map ( g_num_ports => 3 )
+    generic map ( g_num_ports => 4 )
     port map (
       clk   => clk_sys,
       reset => reset,
@@ -149,6 +156,13 @@ begin
 		rreq_s(2) 		=> xbar_c_rreq,
 		rw_s(2)   		=> xbar_c_rw,
 		rack_s(2) 		=> xbar_c_rack,
+
+		port_match(3) 	=> "0010",
+		addr_s(3) 		=> xbar_d_addr,
+		data_s(3) 		=> xbar_d_data,
+		rreq_s(3) 		=> xbar_d_rreq,
+		rw_s(3)   		=> xbar_d_rw,
+		rack_s(3) 		=> xbar_d_rack,
 
       debug  => open
     );
@@ -202,6 +216,20 @@ begin
       spi_rs   => spi_rs,
       rack    => xbar_b_rack,
       debug   => open
+    );
+
+  u_uart : entity utils.uart_cpu
+    port map (
+      clk_uart => clk_sys,
+      rxd      => uart_rx,
+      txd      => uart_tx,
+      clk_cpu  => clk_sys,
+      reset    => reset,
+      addr     => xbar_d_addr,
+      data     => xbar_d_data,
+      rw       => xbar_d_rw,
+      rreq     => xbar_d_rreq,
+      rack     => xbar_d_rack
     );
 
   leds <= (others => '0');
