@@ -268,9 +268,11 @@ if falling_edge(clki) then
 						
 					end if;
 					
-					bank <= addr(23 downto 22);
-					row  <= addr(21 downto 9);
-					col  <= addr(8 downto 0);
+					-- addr is byte-addressed:
+					-- bank: addr[24:23], row: addr[22:10], col: addr[9:1], addr[0] = byte select via DQM
+					bank <= addr(24 downto 23);
+					row  <= addr(22 downto 10);
+					col  <= addr(9 downto 1);
 				end if;
 				
 			when WR =>
@@ -498,5 +500,4 @@ begin
 end process;
 
 end rtl;
-
 
