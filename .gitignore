@@ -1,0 +1,37 @@
+# Editor swap files
+*.swp
+*.bak
+*.vhd.bak
+
+# Simulation outputs
+simlib/
+
+# Quartus build outputs
+projects/*/db/
+projects/*/greybox_tmp/
+projects/*/incremental_db/
+projects/*/*.asm.rpt
+projects/*/*.done
+projects/*/*.fit.rpt
+projects/*/*.fit.smsg
+projects/*/*.fit.summary
+projects/*/*.flow.rpt
+projects/*/*.jdi
+projects/*/*.map.rpt
+projects/*/*.map.summary
+projects/*/*.pin
+projects/*/*.pof
+projects/*/*.pow.rpt
+projects/*/*.pow.summary
+projects/*/*.qws
+projects/*/*.sld
+projects/*/*.sof
+projects/*/*.sta.rpt
+projects/*/*.sta.summary
+
+# Software build outputs
+software/helloworld/hello
+software/helloworld/hello.bin
+software/helloworld/objdump
+software/helloworld/readelf
+software/helloworld/romcode
