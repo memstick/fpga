@@ -2,9 +2,9 @@
 #define VIDEOBUFFER_P 0x80000000
 
 void print(const char * s, int position){
-	volatile unsigned int *p = (unsigned int *) VIDEOBUFFER_P;
+	volatile char *p = (volatile char *) VIDEOBUFFER_P;
 	while(*s){
-		p[position] = *((unsigned int *)s);
+		p[position] = *s;
 		s++;
 		position++;
 		if(position >= (16*3))
@@ -13,8 +13,8 @@ void print(const char * s, int position){
 }
 
 void printChar(const char * s, int position){
-	volatile unsigned int *p = (unsigned int *) VIDEOBUFFER_P;
-	p[position] = *((unsigned int *)s);
+	volatile char *p = (volatile char *) VIDEOBUFFER_P;
+	p[position] = *s;
 }
 
 void printInt(int i, int position){

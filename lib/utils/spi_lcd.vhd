@@ -10,7 +10,7 @@ entity spi_lcd is
 		reset      : in std_logic;
 
 		addr		  : in std_logic_vector(31 downto 0);
-		data  	  : in std_logic_vector(31 downto 0);
+		data  	  : inout std_logic_vector(31 downto 0);
 		rw			  : in std_logic;
 		rreq		  : in std_logic;
 		
@@ -59,7 +59,13 @@ signal test : integer range 0 to 7 := 0;
 
 constant ascii_num_off : unsigned(7 downto 0) := to_unsigned(48, 8);
 
+signal data_i : std_logic_vector(31 downto 0);
+signal data_o : std_logic_vector(31 downto 0);
+
 begin
+
+data <= data_o when rw = '0' else (others => 'Z');
+data_i <= data;
 
 process(reset,clk)
 begin
@@ -71,19 +77,32 @@ if falling_edge(clk) then
 		rack <= '0';
 		debug <= (others => '0');
 		test <= 0;
+		data_o <= (others => '0');
 	else
+		data_o <= (others => '0');
 	
 		case rstate is
 
 			when RAM_INIT =>
 				
 				if rreq = '1' then
+				
+					if rw = '1' then
+						
+						ddram( to_integer(unsigned(addr(5 downto 0))+0) ) <= data_i(7 downto 0);
+						ddram( to_integer(unsigned(addr(5 downto 0))+1) ) <= data_i(15 downto 8);
+						ddram( to_integer(unsigned(addr(5 downto 0))+2) ) <= data_i(23 downto 16);
+						ddram( to_integer(unsigned(addr(5 downto 0))+3) ) <= data_i(31 downto 24);
+						
+						
+					else
 					
-					ddram( to_integer(unsigned(addr(7 downto 2))) ) <= data(7 downto 0);
-					--debug <= std_logic_vector(test);
-					
-					debug(test) <= '1';
-					test <= test + 1;
+						data_o(7 downto 0) <= ddram( to_integer(unsigned(addr(5 downto 0))+0) );
+						data_o(15 downto 8) <= ddram( to_integer(unsigned(addr(5 downto 0))+1) );
+						data_o(23 downto 16) <= ddram( to_integer(unsigned(addr(5 downto 0))+2) );
+						data_o(31 downto 24) <= ddram( to_integer(unsigned(addr(5 downto 0))+3) );
+						
+					end if;
 					
 					rstate <= RAM_DONE;
 					rack <= '1';
@@ -270,5 +289,4 @@ end case;
 end process;
 
 end rtl;
-
 
