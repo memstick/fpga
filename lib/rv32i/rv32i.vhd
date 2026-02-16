@@ -388,12 +388,10 @@ begin
                     case FUNCT3 is
                         when "000" => --SB
 
-
-                            --FIX : endre denne til RAM_READ og fikse logikken, vi skriver bare en av fire bytes
-                            -- FIX: 
-                            --MDR_o((offset + 7) downto offset) <= GPR_RS2(7 downto 0);
-                            rstate <= RAM_WRITE;
-                            RW   <= '1';
+                            rstate <= RAM_READ;
+                            RW   <= '0';
+                            read2 <= '0';
+                            write2 <= '0';
                             rreq <= '1';
 
                         when "001" => --SH
