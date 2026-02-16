@@ -239,6 +239,7 @@ begin
 
     elsif rising_edge(clk_cpu) then
         data_o <= (others => '0');
+        rack <= '0';
 
         c_rd_valid := c_rd_ready_sync and (not c_rd_ack);
         c_wr_ready := (not c_wr_busy_sync) and (not c_wr_en);
@@ -256,15 +257,19 @@ begin
             if rw = '1' then
 
                 if    addr(3 downto 0) = "0000" then -- Write control
+                    rack <= '1';
                 elsif addr(3 downto 0) = "0100" then -- Invalid
+                    rack <= '1';
                 elsif addr(3 downto 0) = "1000" then -- Write data
 
                     if c_wr_ready = '1' then
                         c_write <= data_i(7 downto 0);
                         c_wr_en <= '1';
+                        rack <= '1';
                     end if;
                 else
                     -- Invalid
+                    rack <= '1';
                 end if;
 
             else
@@ -272,6 +277,7 @@ begin
                 if addr(3 downto 0) = "0000" then -- Read control
 
                     data_o <= make_control_reg(c_rd_valid, c_wr_busy_sync);
+                    rack <= '1';
 
                 elsif addr(3 downto 0) = "0100" then -- Read data
 
@@ -279,14 +285,15 @@ begin
 
                     if c_rd_ready_sync = '1' then
                         c_rd_ack <= '1';
+                        rack <= '1';
                     end if;
 
                 elsif addr(3 downto 0) = "1000" then -- Invalid
+                    rack <= '1';
                 else
                     -- Invalid
+                    rack <= '1';
                 end if;
-
-                rack <= '1';
 
             end if;
 
