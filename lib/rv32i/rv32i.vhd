@@ -299,11 +299,11 @@ begin
                                 read2 <= '1';
                             end if;
                         when "001" => --LH
-                            if offset > 15 then
+                            if offset = 24 then
                                 read2 <= '1';
                             end if;
                         when "101" => --LHU
-                            if offset > 15 then
+                            if offset = 24 then
                                 read2 <= '1';
                             end if;
                         when "000" => --LB
@@ -396,7 +396,7 @@ begin
 
                         when "001" => --SH
 
-                            if offset > 16 then
+                            if offset = 24 then
 
                                 rstate <= RAM_READ;
                                 read2 <= '1';
@@ -518,10 +518,14 @@ begin
                 when "010" => -- SLTI
                     if signed(GPR_RS1) < signed(IMM) then
                         GPR_RD <= (0 => '1', others => '0');
+                    else
+                        GPR_RD <= (others => '0');
                     end if;
                 when "011" => -- SLTIU
                     if unsigned(GPR_RS1) < unsigned(IMM) then
                         GPR_RD <= (0 => '1', others => '0');
+                    else
+                        GPR_RD <= (others => '0');
                     end if;
                 when "100" => -- XORI
                     GPR_RD <= GPR_RS1 xor IMM;
@@ -572,12 +576,16 @@ begin
 
                     if signed(GPR_RS1) < signed(GPR_RS2) then
                         GPR_RD <= (0 => '1', others => '0');
+                    else
+                        GPR_RD <= (others => '0');
                     end if;
 
                 when "011" => -- SLTU
 
                     if unsigned(GPR_RS1) < unsigned(GPR_RS2) then
                         GPR_RD <= (0 => '1', others => '0');
+                    else
+                        GPR_RD <= (others => '0');
                     end if;
 
                 when "100" => -- XOR
