@@ -35,3 +35,16 @@ software/helloworld/hello.bin
 software/helloworld/objdump
 software/helloworld/readelf
 software/helloworld/romcode
+software/helloworld_c/hello
+software/helloworld_c/hello.bin
+software/helloworld_c/objdump
+software/helloworld_c/readelf
+software/helloworld_c/romcode
+software/helloworld_rust/hello.bin
+software/helloworld_rust/objdump
+software/helloworld_rust/readelf
+software/helloworld_rust/romcode
+software/helloworld_rust/target/
+
+# Quartus programmer outputs
+projects/*/*.cdf
