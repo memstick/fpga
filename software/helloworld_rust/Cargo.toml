@@ -4,5 +4,4 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-riscv-rt = "0.12.2"
 panic-halt = "0.2.0"
