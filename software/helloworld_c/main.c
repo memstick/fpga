@@ -6,7 +6,7 @@
 #define UART_DATA_WR  (UART_BASE + 0x8)
 
 #define SDRAM_TEST_START 0x00001000u
-#define SDRAM_TEST_END   0x01000000u
+#define SDRAM_TEST_END   0x01800000u
 
 static inline void uart_putc(char c){
 	volatile unsigned int *ctrl = (unsigned int *) UART_CTRL;

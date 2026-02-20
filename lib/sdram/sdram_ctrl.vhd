@@ -291,9 +291,10 @@ if falling_edge(clki) then
 						
 					end if;
 					
-					bank <= addr(23 downto 22);
-					row  <= addr(21 downto 9);
-					col  <= addr(8 downto 0);
+					-- addr is byte-addressed (CPU is word-aligned); use halfword address for x16 SDRAM
+					bank <= addr(24 downto 23);
+					row  <= addr(22 downto 10);
+					col  <= addr(9 downto 1);
 				end if;
 				
 			when REFRESH =>
