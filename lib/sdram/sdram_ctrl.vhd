@@ -58,7 +58,7 @@ architecture rtl of sdram_ctrl is
 
 -- Typedefs
 type t_ini_state IS (PAUSE,PRECHARGE_ALL,AUTO_REFRESH,IDLE,WRITE_MR);
-type t_ctrl_state IS (BOOT,IDLE,RD,WR,DONE);
+type t_ctrl_state IS (BOOT,IDLE,REFRESH,RD,WR,DONE);
 type t_read_state IS (INIT,BANK_ACTIVE,WAIT_READ,DO_READ);
 type t_write_state IS (INIT,BANK_ACTIVE,DO_WRITE);
 
@@ -68,6 +68,12 @@ signal rstate : t_read_state;
 signal wstate : t_write_state;
 
 signal delay : unsigned(15 downto 0);
+signal refresh_cnt : unsigned(15 downto 0);
+signal refresh_pending : std_logic;
+signal refresh_req : std_logic;
+
+constant REFRESH_CYCLES : unsigned(15 downto 0) := to_unsigned(94, 16); -- 7.8125us at 12 MHz
+constant RFC_CYCLES : unsigned(15 downto 0) := to_unsigned(2, 16); -- >=60ns at 12 MHz
 
 -- Addressing
 signal bank : std_logic_vector(1 downto 0);
@@ -138,6 +144,7 @@ if falling_edge(clki) then
 		istate <= IDLE;
 		rstate <= INIT;
 		wstate <= INIT;
+		refresh_pending <= '0';
 
 		-- After initial power up; all pins must be in "NOP"
 		-- CKE[n-1] must be "1" and after that don't care, so just set CKE to 1
@@ -256,6 +263,22 @@ if falling_edge(clki) then
 				end case;
 				
 			when IDLE =>
+
+				if refresh_req = '1' then
+					refresh_pending <= '1';
+				end if;
+
+				if (refresh_pending = '1') and (rreq = '0') then
+					-- AUTO REFRESH command
+					CS <= '0';
+					RAS <= '0';
+					CAS <= '0';
+					WE <= '1';
+					DQM <= (others => '0');
+					delay <= RFC_CYCLES - 1;
+					refresh_pending <= '0';
+					state <= REFRESH;
+				end if;
 			
 				if rreq = '1' then
 				
@@ -268,13 +291,19 @@ if falling_edge(clki) then
 						
 					end if;
 					
-					-- addr is byte-addressed:
-					-- bank: addr[24:23], row: addr[22:10], col: addr[9:1], addr[0] = byte select via DQM
-					bank <= addr(24 downto 23);
-					row  <= addr(22 downto 10);
-					col  <= addr(9 downto 1);
+					bank <= addr(23 downto 22);
+					row  <= addr(21 downto 9);
+					col  <= addr(8 downto 0);
 				end if;
 				
+			when REFRESH =>
+				CS <= '1';
+				if delay = 0 then
+					state <= IDLE;
+				else
+					delay <= delay - 1;
+				end if;
+
 			when WR =>
 			
 				case wstate is
@@ -463,6 +492,22 @@ end if;
 
 end process;
 
+process(clki,reset)
+begin
+	if reset = '1' then
+		refresh_cnt <= (others => '0');
+		refresh_req <= '0';
+	elsif rising_edge(clki) then
+		refresh_req <= '0';
+		if refresh_cnt >= (REFRESH_CYCLES - 1) then
+			refresh_cnt <= (others => '0');
+			refresh_req <= '1';
+		else
+			refresh_cnt <= refresh_cnt + 1;
+		end if;
+	end if;
+end process;
+
 process(clki)
 
 begin
@@ -500,4 +545,3 @@ begin
 end process;
 
 end rtl;
-
