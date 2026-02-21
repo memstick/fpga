@@ -66,7 +66,7 @@ signal rx_state : t_rx_uart_state := IDLE;
 signal rx_fstate : t_rx_flush_state := IDLE;
 
 -- Sampling counter
-signal rx_smp_cnt : unsigned( 7 downto 0 );
+signal rx_smp_cnt : unsigned(15 downto 0);
 
 -- Delay counter
 signal rx_dly_cnt : unsigned( 15 downto 0 );
@@ -78,14 +78,14 @@ signal rx_bit_cnt : unsigned( 7 downto 0 );
 -- PASTED FROM RX MOD
 
 -- Clock multiplier (input clock should be baud * mult)
--- 12 MHz / 104 ≈ 115200 baud
-constant mult : unsigned(7 downto 0) := to_unsigned(104, 8);
+-- 50 MHz / 434 ≈ 115200 baud
+constant mult : unsigned(15 downto 0) := to_unsigned(434, 16);
 
 -- State machine
 signal tx_state : t_tx_uart_state := IDLE;
 
 -- Sampling counter
-signal tx_smp_cnt : unsigned( 7 downto 0 );
+signal tx_smp_cnt : unsigned(15 downto 0);
 
 -- Bit counter
 signal tx_bit_cnt : integer range 0 to 31;

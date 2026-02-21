@@ -5,6 +5,7 @@ riscv_common.files = [
 ]
 
 rv32i.files = [
+  "lib/rv32i/rv32i_pkg.vhd",
   "lib/rv32i/rv32i.vhd",
 ]
 

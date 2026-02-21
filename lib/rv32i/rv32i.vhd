@@ -4,6 +4,7 @@ use ieee.numeric_std.ALL;
 
 library riscv_common;
 use riscv_common.rv32i_global.all;
+use work.rv32i_pkg.all;
 
 entity rv32i is
     port (
@@ -30,10 +31,6 @@ entity rv32i is
 end rv32i;
 
 architecture rtl of rv32i is
-
-    -- Typedefs
-    type t_cpu_state IS (ROM_INIT,INIT,FETCH,DECODE,EXECUTE,WRITEBACK,HALTED,ERROR);
-    type t_ram_state IS (RAM_INIT,RAM_READ,RAM_READ2,RAM_WRITE,RAM_READ_DONE,RAM_WRITE_DONE);
 
     type t_reg_bank is array (0 to 31) of std_logic_vector(31 downto 0);
 
@@ -116,506 +113,6 @@ begin
 
         -- I use this to figure out where in the word to read from in load/store logic
         variable offset : integer range 0 to 63;--std_logic_vector(1 downto 0);
-        variable size    : integer range 0 to 32;
-
-        -- DECODING PROCEDURES
-
-        procedure rv32i_decode_r is
-
-        begin
-            FUNCT7 <= std_logic_vector(MDR_i(31 downto 25));
-            RS2 <= to_integer(unsigned(MDR_i(24 downto 20)));
-            RS1 <= to_integer(unsigned(MDR_i(19 downto 15)));
-            FUNCT3 <= std_logic_vector(MDR_i(14 downto 12));
-            RD <= to_integer(unsigned(MDR_i(11 downto 7)));
-            OP <= MDR_i(6 downto 0);
-        end procedure rv32i_decode_r;
-
-        procedure rv32i_decode_i is
-
-        begin
-            IMM <= std_logic_vector(resize(signed(MDR_i(31 downto 20)), IMM'length));
-            RS1 <= to_integer(unsigned(MDR_i(19 downto 15)));
-            FUNCT3 <= MDR_i(14 downto 12);
-            RD <= to_integer(unsigned(MDR_i(11 downto 7)));
-            OP <= MDR_i(6 downto 0);
-        end procedure rv32i_decode_i;
-
-        procedure rv32i_decode_s is
-
-            variable temp : std_logic_vector(11 downto 0);
-
-        begin
-
-            temp := MDR_i(31 downto 25) & MDR_i(11 downto 7);
-            IMM <= std_logic_vector(resize(signed(temp), IMM'length));
-            RS1 <= to_integer(unsigned(MDR_i(19 downto 15)));
-            RS2 <= to_integer(unsigned(MDR_i(24 downto 20)));
-            FUNCT3 <= MDR_i(14 downto 12);
-            OP <= MDR_i(6 downto 0);
-        end procedure rv32i_decode_s;
-
-        procedure rv32i_decode_b is
-
-            variable temp : std_logic_vector(12 downto 0);
-
-        begin
-
-            temp := MDR_i(31) & MDR_i(7) & MDR_i(30 downto 25) & MDR_i(11 downto 8) & '0';
-            IMM <= std_logic_vector(resize(signed(temp), IMM'length));
-            RS1 <= to_integer(unsigned(MDR_i(19 downto 15)));
-            RS2 <= to_integer(unsigned(MDR_i(24 downto 20)));
-            FUNCT3 <= MDR_i(14 downto 12);
-            OP <= MDR_i(6 downto 0);
-        end procedure rv32i_decode_b;
-
-        procedure rv32i_decode_u is
-
-            variable temp : std_logic_vector(31 downto 0);
-
-        begin
-
-            temp := MDR_i(31 downto 12) & x"000";
-            IMM <= temp;--std_logic_vector(resize(signed(temp), IMM'length));
-            RD <= to_integer(unsigned(MDR_i(11 downto 7)));
-            OP <= MDR_i(6 downto 0);
-        end procedure rv32i_decode_u;
-
-        procedure rv32i_decode_j is
-
-            variable temp : std_logic_vector(20 downto 0);
-
-        begin
-
-            temp := MDR_i(31) & MDR_i(19 downto 12) & MDR_i(20) & MDR_i(30 downto 21) & '0';
-            IMM <= std_logic_vector(resize(signed(temp), IMM'length));
-            RD <= to_integer(unsigned(MDR_i(11 downto 7)));
-            OP <= MDR_i(6 downto 0);
-        end procedure rv32i_decode_j;
-
-        -- EXECUTION PROCEDURES
-
-        procedure rv32i_execute_lui is
-        begin
-            GPR_RD <= std_logic_vector(IMM);
-            state <= WRITEBACK;
-        end procedure rv32i_execute_lui;
-
-        procedure rv32i_execute_auipc is
-        begin
-            GPR_RD <= std_logic_vector(unsigned(IMM) + PC);
-            state <= WRITEBACK;
-        end procedure rv32i_execute_auipc;
-
-        procedure rv32i_execute_jal is
-
-        begin
-
-            GPR_RD <= std_logic_vector(PC+4);
-            nPC <= unsigned(IMM) + PC;
-
-            state <= WRITEBACK;
-
-        end procedure rv32i_execute_jal;
-
-        procedure rv32i_execute_jalr is
-
-        begin
-
-            GPR_RD <= std_logic_vector(PC+4);
-            nPC <= unsigned(
-                   std_logic_vector(unsigned(IMM) + unsigned(GPR_RS1)) and x"FFFFFFFE"
-               );
-
-            state <= WRITEBACK;
-
-        end procedure rv32i_execute_jalr;
-
-        procedure rv32i_execute_b is
-        begin
-
-            case funct3 is
-
-                when "000" => -- BEQ
-                    if GPR_RS1 = GPR_RS2 then
-                        nPC <= unsigned(IMM) + PC;
-                    end if;
-
-                when "001" => -- BNE
-                    if GPR_RS1 /= GPR_RS2 then
-                        nPC <= unsigned(IMM) + PC;
-                    end if;
-
-                when "100" => -- BLT
-                    if signed(GPR_RS1) < signed(GPR_RS2) then
-                        nPC <= unsigned(IMM) + PC;
-                    end if;
-
-                when "101" => -- BGE
-                    if signed(GPR_RS1) >= signed(GPR_RS2) then
-                        nPC <= unsigned(IMM) + PC;
-                    end if;
-
-                when "110" => -- BLTU
-                    if unsigned(GPR_RS1) < unsigned(GPR_RS2) then
-                        nPC <= unsigned(IMM) + PC;
-                    end if;
-
-                when "111" => -- BGEU
-                    if unsigned(GPR_RS1) >= unsigned(GPR_RS2) then
-                        nPC <= unsigned(IMM) + PC;
-                    end if;
-
-                when others =>
-            -- error
-            end case;
-
-            state <= WRITEBACK;
-
-        end procedure rv32i_execute_b;
-
-        procedure rv32i_execute_l is
-
-        begin
-
-            case rstate is
-                when RAM_INIT =>
-
-                    rreq <= '1';
-                    RW   <= '0';
-
-                    MAR <= (std_logic_vector(unsigned(IMM) + unsigned(GPR_RS1))) and x"FFFFFFFC";
-                    offset := to_integer(shift_left(unsigned(std_logic_vector(unsigned(IMM) + unsigned(GPR_RS1)) and x"00000003"), 3));
-
-                    --GPR_RD <= MDR_i;
-
-                    rstate <= RAM_READ;
-
-                    read2 <= '0';
-
-                    case FUNCT3 is
-                        when "010" => --LW
-                            if offset > 0 then
-                                read2 <= '1';
-                            end if;
-                        when "001" => --LH
-                            if offset = 24 then
-                                read2 <= '1';
-                            end if;
-                        when "101" => --LHU
-                            if offset = 24 then
-                                read2 <= '1';
-                            end if;
-                        when "000" => --LB
-                        when "100" => --LBU
-                        when others =>
-                    -- Error
-                    end case;
-
-                when RAM_READ =>
-
-                    if rack = '1' then
-
-                        --MDR_i(31 downto 0) <= MDR_i((offset+31) downto offset);
-                        MDR_i(31 downto 0) <= MDR_i(63 downto 32);
-
-                        rstate <= RAM_READ_DONE;
-
-                    end if;
-
-                when RAM_READ2 =>
-
-                    if rack = '1' then
-
-                        rstate <= RAM_READ_DONE;
-
-                    end if;
-
-                when RAM_READ_DONE =>
-
-                    rreq <= '0';
-
-                    if rack = '0' then
-
-                        if read2 = '1' then
-                            rstate <= RAM_READ2;
-                            MAR    <= (std_logic_vector(unsigned(IMM) + unsigned(GPR_RS1) + to_unsigned(4, 32))) and x"FFFFFFFC";
-                            read2  <= '0';
-                            rreq   <= '1';
-                        else
-
-                            case FUNCT3 is
-                                when "010" => --LW
-                                    GPR_RD <= MDR_i((offset + 31) downto offset);
-                                when "001" => --LH
-                                    GPR_RD <= std_logic_vector(resize(signed(MDR_i((offset + 15) downto offset)), 32));
-                                when "101" => --LHU
-                                    GPR_RD <= x"0000" & MDR_i((offset + 15) downto offset);
-                                when "000" => --LB
-                                    GPR_RD <= std_logic_vector(resize(signed(MDR_i((offset + 7) downto offset)), 32));
-                                when "100" => --LBU
-                                    GPR_RD <= x"000000" & MDR_i((offset + 7) downto offset);
-                                when others =>
-                            -- Error
-                            end case;
-
-                            state <= WRITEBACK;
-                        end if;
-                    end if;
-
-                when others =>
-            -- Error
-
-            end case;
-
-        end procedure rv32i_execute_l;
-
-        procedure rv32i_execute_s is
-
-        begin
-
-            case rstate is
-                when RAM_INIT =>
-
-                    rreq <= '1';
-
-                    MAR <= (std_logic_vector(unsigned(IMM) + unsigned(GPR_RS1))) and x"FFFFFFFC";
-                    offset := to_integer(shift_left(unsigned(std_logic_vector(unsigned(IMM) + unsigned(GPR_RS1)) and x"00000003"), 3));
-
-                    read2 <= '0';
-                    write2 <= '0';
-
-                    case FUNCT3 is
-                        when "000" => --SB
-
-                            rstate <= RAM_READ;
-                            RW   <= '0';
-                            read2 <= '0';
-                            write2 <= '0';
-                            rreq <= '1';
-
-                        when "001" => --SH
-
-                            if offset = 24 then
-
-                                rstate <= RAM_READ;
-                                read2 <= '1';
-                                write2 <= '1';
-                                RW   <= '0';
-
-                            else
-                                MDR_o((offset + 15) downto offset) <= GPR_RS2(15 downto 0);
-                                rstate <= RAM_WRITE;
-                                RW   <= '1';
-                                rreq <= '1';
-                            end if;
-
-                        when "010" => --SW
-                            if offset > 0 then
-
-                                rstate <= RAM_READ;
-                                read2 <= '1';
-                                write2 <= '1';
-                                RW   <= '0';
-
-                            else
-                                MDR_o(31 downto 0) <= GPR_RS2;
-                                rstate <= RAM_WRITE;
-                                RW   <= '1';
-                                rreq <= '1';
-                            end if;
-                        when others =>
-                    end case;
-
-                when RAM_READ =>
-
-                    if rack = '1' then
-
-                        MDR_o(31 downto 0) <= MDR_i(63 downto 32);
-
-                        rstate <= RAM_READ_DONE;
-
-                    end if;
-
-                when RAM_READ2 =>
-
-                    if rack = '1' then
-
-                        MDR_o(63 downto 32) <= MDR_i(63 downto 32);
-
-                        rstate <= RAM_READ_DONE;
-
-                    end if;
-
-                when RAM_READ_DONE =>
-
-                    rreq <= '0';
-
-                    if rack = '0' then
-
-                        if read2 = '1' then
-                            rstate <= RAM_READ2;
-                            MAR    <= (std_logic_vector(unsigned(IMM) + unsigned(GPR_RS1) + to_unsigned(4, 32))) and x"FFFFFFFC";
-                            read2  <= '0';
-                            rreq   <= '1';
-                        else
-                            rstate <= RAM_WRITE;
-
-                            case FUNCT3 is
-                                when "000" => -- SB
-                                    MDR_o((offset + 7) downto offset) <= GPR_RS2(7 downto 0);
-                                when "001" => -- SH
-                                    MDR_o((offset + 15) downto offset) <= GPR_RS2(15 downto 0);
-                                when "010" => -- SW
-                                    MDR_o((offset + 31) downto offset) <= GPR_RS2;
-                                when others =>
-                            -- Error!
-                            end case;
-
-                            MAR <= (std_logic_vector(unsigned(IMM) + unsigned(GPR_RS1))) and x"FFFFFFFC";
-                            RW <= '1';
-                            rreq <= '1';
-                        end if;	
-                    end if;
-
-                when RAM_WRITE =>
-
-                    if rack = '1' then
-                        rstate <= RAM_WRITE_DONE;
-                    end if;
-
-                when RAM_WRITE_DONE =>
-
-                    rreq <= '0';
-
-                    if rack = '0' then
-
-                        if write2 = '1' then
-
-                            MAR    <= (std_logic_vector(unsigned(IMM) + unsigned(GPR_RS1) + to_unsigned(4, 32))) and x"FFFFFFFC";
-                            write2 <= '0';
-                            rreq <= '1';
-                            MDR_o(31 downto 0) <= MDR_o(63 downto 32);
-                            rstate <= RAM_WRITE;
-                        else
-                            state <= WRITEBACK;
-                        end if;
-                    end if;
-
-                when others =>
-            -- Error
-            end case;
-
-        end procedure rv32i_execute_s;
-
-        procedure rv32i_execute_compi is
-
-        begin
-
-            case funct3 is
-                when "000" => -- ADDI
-                    GPR_RD <= std_logic_vector(unsigned(GPR_RS1) + unsigned(IMM));
-                when "010" => -- SLTI
-                    if signed(GPR_RS1) < signed(IMM) then
-                        GPR_RD <= (0 => '1', others => '0');
-                    else
-                        GPR_RD <= (others => '0');
-                    end if;
-                when "011" => -- SLTIU
-                    if unsigned(GPR_RS1) < unsigned(IMM) then
-                        GPR_RD <= (0 => '1', others => '0');
-                    else
-                        GPR_RD <= (others => '0');
-                    end if;
-                when "100" => -- XORI
-                    GPR_RD <= GPR_RS1 xor IMM;
-                when "110" => -- ORI
-                    GPR_RD <= GPR_RS1 or IMM;
-                when "111" => -- ANDI
-                    GPR_RD <= GPR_RS1 and IMM;
-                when "001" => -- SLLI ; This and the one below I have decoded as "R" - so the amount to be shifted is in "RS2", and the imm is in FUNCT7
-                    GPR_RD <= std_logic_vector(unsigned(GPR_RS1) sll RS2);
-                when "101" => -- SRLI / SRAI
-                    case funct7(5) is -- Bit30 of the instruction tells us the final type
-
-                        when '0' => -- SRLI
-                            GPR_RD <= std_logic_vector(unsigned(GPR_RS1) srl RS2);
-
-                        when '1' => -- SRAI arithmetic shift
-                            GPR_RD <= std_logic_vector(shift_right(signed(GPR_RS1), RS2));
-
-                    end case;
-                when others =>
-            -- error!
-            end case;
-
-            state <= WRITEBACK;
-
-        end procedure rv32i_execute_compi;
-
-        procedure rv32i_execute_compr is
-        begin
-
-            case funct3 is
-
-                when "000" => -- ADD/SUB
-
-                    case funct7(5) is
-                        when '0' => -- ADD
-                            GPR_RD <= std_logic_vector(unsigned(GPR_RS1) + unsigned(GPR_RS2));
-
-                        when '1' => -- SUB
-                            GPR_RD <= std_logic_vector(unsigned(GPR_RS1) - unsigned(GPR_RS2));
-
-                    end case;
-
-                when "001" => -- SLL
-                    GPR_RD <= std_logic_vector( unsigned(GPR_RS1) sll to_integer(unsigned(GPR_RS2(4 downto 0))));
-
-                when "010" => -- SLT
-
-                    if signed(GPR_RS1) < signed(GPR_RS2) then
-                        GPR_RD <= (0 => '1', others => '0');
-                    else
-                        GPR_RD <= (others => '0');
-                    end if;
-
-                when "011" => -- SLTU
-
-                    if unsigned(GPR_RS1) < unsigned(GPR_RS2) then
-                        GPR_RD <= (0 => '1', others => '0');
-                    else
-                        GPR_RD <= (others => '0');
-                    end if;
-
-                when "100" => -- XOR
-
-                    GPR_RD <= GPR_RS1 xor GPR_RS2;
-
-                when "101" => -- SRL/SRA
-
-                    case funct7(5) is
-                        when '0' => -- SRL
-                            GPR_RD <= std_logic_vector( unsigned(GPR_RS1) srl to_integer(unsigned(GPR_RS2(4 downto 0))));
-
-                        when '1' => -- SRA
-                            GPR_RD <= std_logic_vector( shift_right(signed(GPR_RS1), to_integer(unsigned(GPR_RS2(4 downto 0)))));
-
-                    end case;
-
-                when "110" => -- OR
-                    GPR_RD <= GPR_RS1 or GPR_RS2;
-
-                when "111" => -- AND
-                    GPR_RD <= GPR_RS1 and GPR_RS2;
-
-                when others =>
-            --error		
-            end case;
-
-            state <= WRITEBACK;
-
-        end procedure rv32i_execute_compr;
 
     begin
 
@@ -690,34 +187,34 @@ begin
                         case MDR_i(6 downto 0) is
 
                             when rv32i_compr =>
-                                rv32i_decode_r;
+                                rv32i_decode_r(MDR_i, FUNCT7, RS2, RS1, FUNCT3, RD, OP);
 
                             when rv32i_compi =>
 
                                 case MDR_i(13 downto 12) is
 
                                     when "01" =>
-                                        rv32i_decode_r;
+                                        rv32i_decode_r(MDR_i, FUNCT7, RS2, RS1, FUNCT3, RD, OP);
 
                                     when others =>
-                                        rv32i_decode_i;
+                                        rv32i_decode_i(MDR_i, IMM, RS1, FUNCT3, RD, OP);
 
                                 end case;
 
                             when rv32i_l | rv32i_jalr | rv32i_fence | rv32i_system =>
-                                rv32i_decode_i;
+                                rv32i_decode_i(MDR_i, IMM, RS1, FUNCT3, RD, OP);
 
                             when rv32i_s =>
-                                rv32i_decode_s;
+                                rv32i_decode_s(MDR_i, IMM, RS1, RS2, FUNCT3, OP);
 
                             when rv32i_b =>
-                                rv32i_decode_b;
+                                rv32i_decode_b(MDR_i, IMM, RS1, RS2, FUNCT3, OP);
 
                             when rv32i_lui | rv32i_auipc =>
-                                rv32i_decode_u;
+                                rv32i_decode_u(MDR_i, IMM, RD, OP);
 
                             when rv32i_jal =>
-                                rv32i_decode_j;
+                                rv32i_decode_j(MDR_i, IMM, RD, OP);
 
                             when others =>
                                 state <= WRITEBACK;
@@ -733,31 +230,31 @@ begin
 
                         case OP is
                             when rv32i_lui =>
-                                rv32i_execute_lui;
+                                rv32i_execute_lui(IMM, GPR_RD, state);
 
                             when rv32i_auipc =>
-                                rv32i_execute_auipc;
+                                rv32i_execute_auipc(IMM, PC, GPR_RD, state);
 
                             when rv32i_jal =>
-                                rv32i_execute_jal;
+                                rv32i_execute_jal(IMM, PC, nPC, GPR_RD, state);
 
                             when rv32i_jalr =>
-                                rv32i_execute_jalr;
+                                rv32i_execute_jalr(IMM, PC, GPR_RS1, nPC, GPR_RD, state);
 
                             when rv32i_b =>
-                                rv32i_execute_b;
+                                rv32i_execute_b(FUNCT3, GPR_RS1, GPR_RS2, IMM, PC, nPC, state);
 
                             when rv32i_l =>
-                                rv32i_execute_l;
+                                rv32i_execute_l(rstate, rreq, RW, MAR, offset, read2, rack, FUNCT3, IMM, GPR_RS1, MDR_i, GPR_RD, state);
 
                             when rv32i_s =>
-                                rv32i_execute_s;
+                                rv32i_execute_s(rstate, rreq, RW, MAR, offset, read2, write2, rack, FUNCT3, IMM, GPR_RS1, GPR_RS2, MDR_i, MDR_o, state);
 
                             when rv32i_compi =>
-                                rv32i_execute_compi;
+                                rv32i_execute_compi(FUNCT3, FUNCT7, RS2, GPR_RS1, IMM, GPR_RD, state);
 
                             when rv32i_compr =>
-                                rv32i_execute_compr;
+                                rv32i_execute_compr(FUNCT3, FUNCT7, GPR_RS1, GPR_RS2, GPR_RD, state);
 
                             when rv32i_fence =>
                                 state <= WRITEBACK;

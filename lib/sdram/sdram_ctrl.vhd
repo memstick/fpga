@@ -72,8 +72,8 @@ signal refresh_cnt : unsigned(15 downto 0);
 signal refresh_pending : std_logic;
 signal refresh_req : std_logic;
 
-constant REFRESH_CYCLES : unsigned(15 downto 0) := to_unsigned(94, 16); -- 7.8125us at 12 MHz
-constant RFC_CYCLES : unsigned(15 downto 0) := to_unsigned(2, 16); -- >=60ns at 12 MHz
+constant REFRESH_CYCLES : unsigned(15 downto 0) := to_unsigned(391, 16); -- 7.8125us at 50 MHz
+constant RFC_CYCLES : unsigned(15 downto 0) := to_unsigned(3, 16); -- >=60ns at 50 MHz
 
 -- Addressing
 signal bank : std_logic_vector(1 downto 0);

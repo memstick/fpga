@@ -2,9 +2,6 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.ALL;
 
-library riscv_common;
-use riscv_common.rv32i_global.all;
- 
 entity rom is
   port (
 	
@@ -26,141 +23,6 @@ end rom;
 
 architecture rtl of rom is
 
-function rv32i_encode_load(
-	offset : in integer range -2047 to 2048;
-	rs1    : in integer range 0 to 31;
-	funct3 : in integer range 0 to 2;
-	extend : in std_logic;
-	rd     : in integer range 0 to 31
-	)
-	return std_logic_vector is
-	variable bytecode : std_logic_vector( 31 downto 0 );
-begin
-
-	--bytecode := (others => '0');
-	bytecode(31 downto 20) 	:= std_logic_vector(to_signed(offset, 12));
-	bytecode(19 downto 15) 	:= std_logic_vector(to_unsigned(rs1, 5));
-	bytecode(14) 				:= extend;
-	bytecode(13 downto 12)  := std_logic_vector(to_unsigned(funct3, 2));
-	bytecode(11 downto 7) 	:= std_logic_vector(to_unsigned(rd, 5));
-	bytecode(6 downto 0)    := rv32i_l;--"0000011";
-	
-	return bytecode;
-end;
-
-function rv32i_encode_store(
-	offset : in integer range -2047 to 2048;
-	rs2    : in integer range 0 to 31;
-	rs1    : in integer range 0 to 31;
-	funct3 : in integer range 0 to 2
-	)
-	return std_logic_vector is
-	variable bytecode : std_logic_vector( 31 downto 0 );
-	
-	
-	variable temp : std_logic_vector(11 downto 0);
-begin
-
-	
-	temp := std_logic_vector(to_signed(offset, 12));
-
-	--bytecode := (others => '0');
-	bytecode(31 downto 25) 	:= temp(11 downto 5);
-	bytecode(24 downto 20) 	:= std_logic_vector(to_unsigned(rs2, 5));
-	bytecode(19 downto 15) 	:= std_logic_vector(to_unsigned(rs1, 5));
-	bytecode(14) 				:= '0';
-	bytecode(13 downto 12)  := std_logic_vector(to_unsigned(funct3, 2));
-	bytecode(11 downto 7) 	:= temp(4 downto 0);
-	bytecode(6 downto 0)    := rv32i_s;--"0100011";
-	
-	return bytecode;
-end;
-
-function rv32i_encode_addi(
-	imm    : in integer range -2047 to 2048;
-	rs1    : in integer range 0 to 31;
-	rd     : in integer range 0 to 31--;	--funct3 : in integer range 0 to 2
-	)
-	return std_logic_vector is
-	variable bytecode : std_logic_vector( 31 downto 0 );
-
-begin
-
-	bytecode(31 downto 20) 	:= std_logic_vector(to_signed(imm, 12));
-	bytecode(19 downto 15) 	:= std_logic_vector(to_unsigned(rs1, 5));
-	bytecode(14 downto 12)  := "000";
-	bytecode(11 downto 7) 	:= std_logic_vector(to_unsigned(rd, 5));
-	bytecode(6 downto 0)    := rv32i_compi;--"0010011";
-	
-	return bytecode;
-end;
-
-function rv32i_encode_lui(
-	imm    : in std_logic_vector(31 downto 0);
-	rd     : in integer range 0 to 31
-	)
-	return std_logic_vector is
-	variable bytecode : std_logic_vector( 31 downto 0 );
-
-	
-begin
-
-	bytecode(31 downto 12)  := imm(31 downto 12);
-	bytecode(11 downto 7) 	:= std_logic_vector(to_unsigned(rd, 5));
-	bytecode(6 downto 0)    := rv32i_lui;
-	
-	return bytecode;
-end;
-
-function rv32i_encode_jal(
-	imm    : in integer range -1048575 to 1048576;
-	rd     : in integer range 0 to 31
-	)
-	return std_logic_vector is
-	variable bytecode : std_logic_vector( 31 downto 0 );
-
-	variable temp : std_logic_vector(20 downto 0);
-begin
-
-	temp := std_logic_vector(to_signed(imm, 21));
-
-	bytecode(31) 	:= temp(20);
-	bytecode(30 downto 21) 	:= temp(10 downto 1);
-	bytecode(20) 	:= temp(11);
-	bytecode(19 downto 12) 	:= temp(19 downto 12);
-	bytecode(11 downto 7) 	:= std_logic_vector(to_unsigned(rd, 5));
-	bytecode(6 downto 0)    := rv32i_jal;--"1101111";
-	
-	return bytecode;
-end;
-
-function rv32i_encode_cbranch(
-	imm    : in integer range -4096 to 4095;
-	rs1    : in integer range 0 to 31;
-	rs2    : in integer range 0 to 31;
-	funct3 : in integer range 0 to 7
-	)
-	return std_logic_vector is
-	variable bytecode : std_logic_vector( 31 downto 0 );
-	
-	variable temp : std_logic_vector(12 downto 0);
-begin
-
-	temp := std_logic_vector(to_signed(imm, 13));
-	
-	bytecode(31) := temp(12);
-	bytecode(7) := temp(11);
-	bytecode(30 downto 25) := temp(10 downto 5);
-	bytecode(11 downto 8) := temp(4 downto 1);
-
-	bytecode(24 downto 20) 	:= std_logic_vector(to_unsigned(rs2, 5));
-	bytecode(19 downto 15) 	:= std_logic_vector(to_unsigned(rs1, 5));
-	bytecode(14 downto 12)  := std_logic_vector(to_unsigned(funct3, 3));
-	bytecode(6 downto 0)    := rv32i_b;
-	
-	return bytecode;
-end;
-
 type t_rom is array (0 to 1023) of std_logic_vector(31 downto 0);
 
 type t_ram_state IS (RAM_INIT,RAM_READ,RAM_WRITE,RAM_DONE);
@@ -170,214 +32,378 @@ signal rstate : t_ram_state := RAM_INIT;
 signal data_o : std_logic_vector(31 downto 0);
 
 -- A ROM containing code.
+-- Debug-only hand-assembled ROMs live in lib/rv32i/rom_debug.vhd.
 constant rom : t_rom := (
---	0  => rv32i_encode_lui((31 => '1', others => '0'), 5),
---	1  => rv32i_encode_addi(72, 0, 4),          -- imm, rs1, rd
---	2  => rv32i_encode_store(0, 4, 5, 2), 		  -- imm[offset],rs2[src],rs1[base],funct3[2:4B,1:2B,0:1B]
---	3  => rv32i_encode_addi(101, 0, 4),
---	4  => rv32i_encode_store(4, 4, 5, 2),
---	5  => rv32i_encode_addi(105, 0, 4),
---	6  => rv32i_encode_store(8, 4, 5, 2),
---	7  => rv32i_encode_addi(44, 0, 4),
---	8  => rv32i_encode_store(12, 4, 5, 2),
---	9  => rv32i_encode_addi(32, 0, 4),
---	10  => rv32i_encode_store(16, 4, 5, 2),
---	11  => rv32i_encode_addi(118, 0, 4),
---	12  => rv32i_encode_store(20, 4, 5, 2),
---	13  => rv32i_encode_addi(101, 0, 4),
---	14  => rv32i_encode_store(24, 4, 5, 2),
---	15  => rv32i_encode_addi(114, 0, 4),
---	16  => rv32i_encode_store(28, 4, 5, 2),
---	17  => rv32i_encode_addi(100, 0, 4),
---	18  => rv32i_encode_store(32, 4, 5, 2),
---	19  => rv32i_encode_addi(101, 0, 4),
---	20  => rv32i_encode_store(36, 4, 5, 2),
---	21  => rv32i_encode_addi(110, 0, 4),
---	22  => rv32i_encode_store(40, 4, 5, 2),
---	23  => rv32i_encode_addi(33, 0, 4),
---	24  => rv32i_encode_store(44, 4, 5, 2),
-----	
---	25  => rv32i_encode_addi(94, 0, 4),          -- imm, rs1, rd
---	26  => rv32i_encode_store(48, 4, 0, 2), 		  -- imm[offset],rs2[src],rs1[base],funct3[2:4B,1:2B,0:1B]
---	27  => rv32i_encode_load(12, 0, 2, '0', 4),   -- imm[offset],         rs1[base],funct3,extend?,rd
---	28  => rv32i_encode_store(160, 4, 5, 2), 		  -- imm[offset],rs2[src],rs1[base],funct3[2:4B,1:2B,0:1B]
---	29  => rv32i_encode_store(164, 4, 5, 2), 		  -- imm[offset],rs2[src],rs1[base],funct3[2:4B,1:2B,0:1B]
---	30  => rv32i_encode_addi(47, 0, 4),          -- imm, rs1, rd
---	31  => rv32i_encode_store(168, 4, 5, 2), 		  -- imm[offset],rs2[src],rs1[base],funct3[2:4B,1:2B,0:1B]
---
---
---	-- Init sequence
---	32  => rv32i_encode_lui((19 => '1', others => '0'), 1), -- Num cycles before break
---	33  => rv32i_encode_addi(0, 0, 2), -- Our cycle count before increment
---	34  => rv32i_encode_addi(58, 0, 3), -- End of count
---	35  => rv32i_encode_addi(48, 0, 4), -- Current decimal
---	
---	36  => rv32i_encode_addi(47, 0, 6),
---	37  => rv32i_encode_store(4, 6, 0, 1), -- here
---	38  => rv32i_encode_addi(124, 0, 6),
---			
---			
---		 	-- Start loop here
---	--C: 
---	39  => rv32i_encode_store(168, 6, 5, 2),
---	40  => rv32i_encode_load(4, 0, 2, '0', 7),
---	41  => rv32i_encode_store(4, 6, 0, 1), -- here
---	42  => rv32i_encode_addi(0, 7, 6),
---	43  => rv32i_encode_store(136, 4, 5, 2),
---	44  => rv32i_encode_addi(1, 4, 4), 			-- Increment	
---	45  => rv32i_encode_cbranch(20 , 3, 4, 0 ), 	-- A!! imm, rs1, rs2, funct3:BE; check if we counted to 9
---	--B: 
---	46  => rv32i_encode_addi(1, 2, 2), 			-- inc cycle counter
---	47  => rv32i_encode_cbranch(-4 , 1, 2, 1 ), 	-- B!! imm, rs1, rs2, funct3:BNE; check if we counted to num cycles
---	48  => rv32i_encode_addi(0, 0, 2), 				-- Restore our cycle counter to 0
---	49  => rv32i_encode_jal(-40, 0), --C!!
---		-- Reset decimal counter
---	--A:
---	50  => rv32i_encode_addi(48, 0, 4),
---	51  => rv32i_encode_jal(-20, 0),
---	52  => x"00000000",
+	
+	
+	
 	
 	0 => x"c2000117",
 1 => x"00010113",
-2 => x"20000537",
-3 => x"00052583",
-4 => x"0015f593",
-5 => x"fe059ce3",
-6 => x"20000537",
-7 => x"05500593",
-8 => x"00b52423",
-9 => x"00052583",
-10 => x"0015f593",
-11 => x"fe059ce3",
-12 => x"04100593",
-13 => x"00b52423",
-14 => x"200005b7",
-15 => x"0005a603",
-16 => x"00167613",
-17 => x"fe061ce3",
-18 => x"05200593",
-19 => x"00b52423",
-20 => x"200005b7",
-21 => x"0005a603",
-22 => x"00167613",
-23 => x"fe061ce3",
-24 => x"05400593",
-25 => x"00b52423",
-26 => x"200005b7",
-27 => x"0005a603",
-28 => x"00167613",
-29 => x"fe061ce3",
-30 => x"02000593",
-31 => x"00b52423",
-32 => x"200005b7",
-33 => x"0005a603",
-34 => x"00167613",
-35 => x"fe061ce3",
-36 => x"06800593",
-37 => x"00b52423",
-38 => x"200005b7",
-39 => x"0005a603",
-40 => x"00167613",
-41 => x"fe061ce3",
-42 => x"06500593",
-43 => x"00b52423",
-44 => x"200005b7",
-45 => x"0005a603",
-46 => x"00167613",
-47 => x"fe061ce3",
-48 => x"06c00593",
-49 => x"00b52423",
-50 => x"200005b7",
-51 => x"0005a603",
-52 => x"00167613",
-53 => x"fe061ce3",
-54 => x"06c00593",
-55 => x"00b52423",
-56 => x"200005b7",
-57 => x"0005a603",
-58 => x"00167613",
-59 => x"fe061ce3",
-60 => x"06f00593",
-61 => x"00b52423",
-62 => x"200005b7",
-63 => x"0005a603",
-64 => x"00167613",
-65 => x"fe061ce3",
-66 => x"02000593",
-67 => x"00b52423",
-68 => x"200005b7",
-69 => x"0005a603",
-70 => x"00167613",
-71 => x"fe061ce3",
-72 => x"06600593",
-73 => x"00b52423",
-74 => x"200005b7",
-75 => x"0005a603",
-76 => x"00167613",
-77 => x"fe061ce3",
-78 => x"07200593",
-79 => x"00b52423",
-80 => x"200005b7",
-81 => x"0005a603",
-82 => x"00167613",
-83 => x"fe061ce3",
-84 => x"06f00593",
-85 => x"00b52423",
-86 => x"200005b7",
-87 => x"0005a603",
-88 => x"00167613",
-89 => x"fe061ce3",
-90 => x"06d00593",
-91 => x"00b52423",
-92 => x"200005b7",
-93 => x"0005a603",
-94 => x"00167613",
-95 => x"fe061ce3",
-96 => x"02000593",
-97 => x"00b52423",
-98 => x"200005b7",
-99 => x"0005a603",
-100 => x"00167613",
-101 => x"fe061ce3",
-102 => x"05200593",
-103 => x"00b52423",
-104 => x"200005b7",
-105 => x"0005a603",
-106 => x"00167613",
-107 => x"fe061ce3",
-108 => x"07500593",
-109 => x"00b52423",
-110 => x"200005b7",
-111 => x"0005a603",
-112 => x"00167613",
-113 => x"fe061ce3",
-114 => x"07300593",
-115 => x"00b52423",
-116 => x"200005b7",
-117 => x"0005a603",
-118 => x"00167613",
-119 => x"fe061ce3",
-120 => x"07400593",
-121 => x"00b52423",
-122 => x"200005b7",
-123 => x"0005a603",
-124 => x"00167613",
-125 => x"fe061ce3",
-126 => x"02100593",
-127 => x"00b52423",
-128 => x"200005b7",
-129 => x"0005a603",
-130 => x"00167613",
-131 => x"fe061ce3",
-132 => x"00d00593",
-133 => x"00b52423",
-134 => x"200005b7",
-135 => x"0005a603",
-136 => x"00167613",
-137 => x"fe061ce3",
-138 => x"00a00593",
-139 => x"00b52423",
-140 => x"0000006f",
+2 => x"2480006f",
+3 => x"20000737",
+4 => x"00072783",
+5 => x"0017f793",
+6 => x"fe079ce3",
+7 => x"200007b7",
+8 => x"00a7a423",
+9 => x"00008067",
+10 => x"ff010113",
+11 => x"00812423",
+12 => x"00112623",
+13 => x"00050413",
+14 => x"00044503",
+15 => x"00051a63",
+16 => x"00c12083",
+17 => x"00812403",
+18 => x"01010113",
+19 => x"00008067",
+20 => x"00140413",
+21 => x"fb9ff0ef",
+22 => x"fe1ff06f",
+23 => x"fe010113",
+24 => x"00912a23",
+25 => x"400004b7",
+26 => x"00812c23",
+27 => x"01212823",
+28 => x"01312623",
+29 => x"01412423",
+30 => x"00112e23",
+31 => x"00050a13",
+32 => x"01c00413",
+33 => x"00e00993",
+34 => x"4e848493",
+35 => x"ffc00913",
+36 => x"008a57b3",
+37 => x"00f7f793",
+38 => x"fff78793",
+39 => x"0ff7f793",
+40 => x"03000513",
+41 => x"00f9ec63",
+42 => x"00279793",
+43 => x"009787b3",
+44 => x"0007a783",
+45 => x"00078067",
+46 => x"03100513",
+47 => x"ffc40413",
+48 => x"f4dff0ef",
+49 => x"fd2416e3",
+50 => x"01c12083",
+51 => x"01812403",
+52 => x"01412483",
+53 => x"01012903",
+54 => x"00c12983",
+55 => x"00812a03",
+56 => x"02010113",
+57 => x"00008067",
+58 => x"03200513",
+59 => x"fd1ff06f",
+60 => x"03300513",
+61 => x"fc9ff06f",
+62 => x"03400513",
+63 => x"fc1ff06f",
+64 => x"03500513",
+65 => x"fb9ff06f",
+66 => x"03600513",
+67 => x"fb1ff06f",
+68 => x"03700513",
+69 => x"fa9ff06f",
+70 => x"03800513",
+71 => x"fa1ff06f",
+72 => x"03900513",
+73 => x"f99ff06f",
+74 => x"06100513",
+75 => x"f91ff06f",
+76 => x"06200513",
+77 => x"f89ff06f",
+78 => x"06300513",
+79 => x"f81ff06f",
+80 => x"06400513",
+81 => x"f79ff06f",
+82 => x"06500513",
+83 => x"f71ff06f",
+84 => x"06600513",
+85 => x"f69ff06f",
+86 => x"ff010113",
+87 => x"00112623",
+88 => x"00812423",
+89 => x"06400793",
+90 => x"02f51463",
+91 => x"03100513",
+92 => x"e9dff0ef",
+93 => x"03000513",
+94 => x"e95ff0ef",
+95 => x"03000513",
+96 => x"00812403",
+97 => x"00c12083",
+98 => x"01010113",
+99 => x"e81ff06f",
+100 => x"00900793",
+101 => x"00050413",
+102 => x"02a7f063",
+103 => x"00000513",
+104 => x"ff640413",
+105 => x"00150513",
+106 => x"fe87ece3",
+107 => x"03050513",
+108 => x"0ff57513",
+109 => x"e59ff0ef",
+110 => x"03040513",
+111 => x"0ff57513",
+112 => x"fc1ff06f",
+113 => x"ff010113",
+114 => x"000017b7",
+115 => x"00012623",
+116 => x"38778793",
+117 => x"00c12703",
+118 => x"00e7d663",
+119 => x"01010113",
+120 => x"00008067",
+121 => x"00c12703",
+122 => x"00c12703",
+123 => x"00170713",
+124 => x"00e12623",
+125 => x"fe1ff06f",
+126 => x"80000737",
+127 => x"02f00693",
+128 => x"00054783",
+129 => x"00079463",
+130 => x"00008067",
+131 => x"00e58633",
+132 => x"00f60023",
+133 => x"00158593",
+134 => x"00150513",
+135 => x"feb6d2e3",
+136 => x"00000593",
+137 => x"fddff06f",
+138 => x"800007b7",
+139 => x"00f585b3",
+140 => x"00054783",
+141 => x"00f58023",
+142 => x"00008067",
+143 => x"800007b7",
+144 => x"03050513",
+145 => x"00f585b3",
+146 => x"00a58023",
+147 => x"00008067",
+148 => x"40000537",
+149 => x"fd010113",
+150 => x"00000593",
+151 => x"52450513",
+152 => x"02112623",
+153 => x"02812423",
+154 => x"02912223",
+155 => x"03212023",
+156 => x"01312e23",
+157 => x"01412c23",
+158 => x"01512a23",
+159 => x"01612823",
+160 => x"01712623",
+161 => x"01812423",
+162 => x"01912223",
+163 => x"01a12023",
+164 => x"f69ff0ef",
+165 => x"40000537",
+166 => x"53450513",
+167 => x"d8dff0ef",
+168 => x"00010413",
+169 => x"40000537",
+170 => x"54450513",
+171 => x"d7dff0ef",
+172 => x"00040513",
+173 => x"da9ff0ef",
+174 => x"40000a37",
+175 => x"54ca0513",
+176 => x"d69ff0ef",
+177 => x"40000537",
+178 => x"55050513",
+179 => x"d5dff0ef",
+180 => x"400007b7",
+181 => x"c0fff437",
+182 => x"d0000ab7",
+183 => x"00600b37",
+184 => x"ffa00bb7",
+185 => x"56478c13",
+186 => x"400007b7",
+187 => x"00000913",
+188 => x"00000993",
+189 => x"000014b7",
+190 => x"e1240413",
+191 => x"001a8a93",
+192 => x"c00b0b13",
+193 => x"464b8b93",
+194 => x"57078c93",
+195 => x"01f41713",
+196 => x"41f75793",
+197 => x"0157f7b3",
+198 => x"00145413",
+199 => x"0087c433",
+200 => x"0084c7b3",
+201 => x"00f4a023",
+202 => x"06498793",
+203 => x"1767e263",
+204 => x"06493713",
+205 => x"14070e63",
+206 => x"000c0513",
+207 => x"cedff0ef",
+208 => x"00190913",
+209 => x"00090513",
+210 => x"e11ff0ef",
+211 => x"000c8513",
+212 => x"017989b3",
+213 => x"cd5ff0ef",
+214 => x"00448493",
+215 => x"018007b7",
+216 => x"faf496e3",
+217 => x"400007b7",
+218 => x"c0fff437",
+219 => x"d0000ab7",
+220 => x"00600b37",
+221 => x"ffa00bb7",
+222 => x"56478c93",
+223 => x"400007b7",
+224 => x"00000913",
+225 => x"00000993",
+226 => x"000014b7",
+227 => x"e1240413",
+228 => x"001a8a93",
+229 => x"c00b0b13",
+230 => x"464b8b93",
+231 => x"57078d13",
+232 => x"01f41713",
+233 => x"41f75793",
+234 => x"0157f7b3",
+235 => x"00145413",
+236 => x"0087c433",
+237 => x"0004a783",
+238 => x"0084cc33",
+239 => x"0cfc0e63",
+240 => x"40000437",
+241 => x"57440513",
+242 => x"c61ff0ef",
+243 => x"40000537",
+244 => x"58450513",
+245 => x"c55ff0ef",
+246 => x"00048513",
+247 => x"c81ff0ef",
+248 => x"40000537",
+249 => x"58c50513",
+250 => x"c41ff0ef",
+251 => x"0004a503",
+252 => x"c6dff0ef",
+253 => x"40000537",
+254 => x"59450513",
+255 => x"c2dff0ef",
+256 => x"000c0513",
+257 => x"c59ff0ef",
+258 => x"54ca0513",
+259 => x"c1dff0ef",
+260 => x"57440513",
+261 => x"20000ab7",
+262 => x"400009b7",
+263 => x"40000a37",
+264 => x"800004b7",
+265 => x"c05ff0ef",
+266 => x"00000413",
+267 => x"004a8913",
+268 => x"5b098993",
+269 => x"5b4a0a13",
+270 => x"01048493",
+271 => x"00a00b13",
+272 => x"000aa783",
+273 => x"0027f793",
+274 => x"00078863",
+275 => x"00092503",
+276 => x"0ff57513",
+277 => x"bb9ff0ef",
+278 => x"01400593",
+279 => x"00098513",
+280 => x"d99ff0ef",
+281 => x"d61ff0ef",
+282 => x"01400593",
+283 => x"000a0513",
+284 => x"d89ff0ef",
+285 => x"d51ff0ef",
+286 => x"03040793",
+287 => x"00f48023",
+288 => x"00140413",
+289 => x"fb641ee3",
+290 => x"00000413",
+291 => x"fb5ff06f",
+292 => x"00078993",
+293 => x"ec5ff06f",
+294 => x"06493713",
+295 => x"06498793",
+296 => x"04070063",
+297 => x"0367ee63",
+298 => x"000c8513",
+299 => x"b7dff0ef",
+300 => x"00190913",
+301 => x"00090513",
+302 => x"ca1ff0ef",
+303 => x"000d0513",
+304 => x"017989b3",
+305 => x"b65ff0ef",
+306 => x"00448493",
+307 => x"018007b7",
+308 => x"ecf498e3",
+309 => x"40000537",
+310 => x"5a050513",
+311 => x"f39ff06f",
+312 => x"00078993",
+313 => x"fe5ff06f",
+314 => x"400000b8",
+315 => x"400000e8",
+316 => x"400000f0",
+317 => x"400000f8",
+318 => x"40000100",
+319 => x"40000108",
+320 => x"40000110",
+321 => x"40000118",
+322 => x"40000120",
+323 => x"40000128",
+324 => x"40000130",
+325 => x"40000138",
+326 => x"40000140",
+327 => x"40000148",
+328 => x"40000150",
+329 => x"2c696548",
+330 => x"72657620",
+331 => x"216e6564",
+332 => x"00000000",
+333 => x"6c6c6548",
+334 => x"77202c6f",
+335 => x"646c726f",
+336 => x"00000021",
+337 => x"203a7073",
+338 => x"00007830",
+339 => x"00000a0d",
+340 => x"746d656d",
+341 => x"3a747365",
+342 => x"69727720",
+343 => x"2e2e6574",
+344 => x"000a0d2e",
+345 => x"746d656d",
+346 => x"3a747365",
+347 => x"00000020",
+348 => x"000a0d25",
+349 => x"746d656d",
+350 => x"3a747365",
+351 => x"49414620",
+352 => x"000a0d4c",
+353 => x"30203a70",
+354 => x"00000078",
+355 => x"3a702a20",
+356 => x"00783020",
+357 => x"70786520",
+358 => x"3a746365",
+359 => x"00783020",
+360 => x"746d656d",
+361 => x"3a747365",
+362 => x"53415020",
+363 => x"000a0d53",
+364 => x"002f5e5e",
+365 => x"007c5e5e",
 
 
 
@@ -442,4 +468,3 @@ begin
 end process;
 
 end rtl;
-

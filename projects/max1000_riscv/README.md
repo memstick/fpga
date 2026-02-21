@@ -13,7 +13,7 @@ This is configured in `max1000_riscv.qsf` using per-file `-library` assignments.
 
 ## Top-level
 `max1000_riscv_top.vhd` instantiates:
-- `sys_pll` (12 MHz → 12 MHz, 0.2 MHz)
+- `sys_pll` (12 MHz → 50 MHz, 0.2 MHz)
 - `rv32i` core
 - `utils.crossbar` (port A → SDRAM, port C → ROM)
 - `sdram.sdram_ctrl`

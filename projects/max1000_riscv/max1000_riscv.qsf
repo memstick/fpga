@@ -10,6 +10,7 @@ set_global_assignment -name QIP_FILE sys_pll.qip
 
 # Libraries (lib/ subfolders)
 set_global_assignment -name VHDL_FILE ../../lib/riscv_common/rv32i_global.vhd -library riscv_common
+set_global_assignment -name VHDL_FILE ../../lib/rv32i/rv32i_pkg.vhd -library rv32i
 set_global_assignment -name VHDL_FILE ../../lib/rv32i/rv32i.vhd -library rv32i
 set_global_assignment -name VHDL_FILE ../../lib/sdram/sdram_ctrl.vhd -library sdram
 set_global_assignment -name VHDL_FILE ../../lib/utils/const0.vhd -library utils
@@ -129,6 +130,7 @@ set_global_assignment -name POWER_DEFAULT_INPUT_IO_TOGGLE_RATE "12.5 %"
 set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
 set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
 set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+
 
 
 
