@@ -1,25 +1,34 @@
 #! /usr/bin/python3
 
-with open("hello.bin", "rb") as fp:
-    i = 0
-    while True:
-        data = fp.read(4)
-        if data:
-            a0 = data[0].to_bytes(1, "little").hex()
-            try:
-                a1 = data[1].to_bytes(1, "little").hex()
-            except IndexError:
-                a1 = int(0).to_bytes(1, "little").hex()
-            try:
-                a2 = data[2].to_bytes(1, "little").hex()
-            except IndexError:
-                a2 = int(0).to_bytes(1, "little").hex()
-            try:
-                a3 = data[3].to_bytes(1, "little").hex()
-            except IndexError:
-                a3 = int(0).to_bytes(1, "little").hex()
-            print(f"{i} => x\"{a3}{a2}{a1}{a0}\",")
-            i = i + 1
-        else:
-            print("Done")
-            break
+DEPTH = 1024
+WIDTH = 32
+
+
+def words_from_bin(path):
+    words = []
+    with open(path, "rb") as fp:
+        while True:
+            data = fp.read(4)
+            if not data:
+                break
+            data = data.ljust(4, b"\x00")
+            words.append(data[::-1].hex().upper())
+    return words
+
+
+def emit_mif(words):
+    print(f"WIDTH={WIDTH};")
+    print(f"DEPTH={DEPTH};")
+    print("")
+    print("ADDRESS_RADIX=UNS;")
+    print("DATA_RADIX=HEX;")
+    print("")
+    print("CONTENT BEGIN")
+    for i in range(DEPTH):
+        val = words[i] if i < len(words) else "00000000"
+        print(f"  {i} : {val};")
+    print("END;")
+
+
+if __name__ == "__main__":
+    emit_mif(words_from_bin("hello.bin"))

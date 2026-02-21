@@ -5,7 +5,7 @@ OBJCOPY=/opt/riscv/bin/riscv32-unknown-elf-objcopy
 RELFCOPY=/opt/riscv/bin/riscv32-unknown-elf-readelf
 STRIP=/opt/riscv/bin/riscv32-unknown-elf-strip
 
-all: romcode hello.bin objdump readelf
+all: rom.mif hello.bin objdump readelf
 
 hello: main.c entry.s
 	$(CC) -T linker.ld -march=rv32i -mabi=ilp32 -Os -fomit-frame-pointer -nostdlib $^ -o $@
@@ -20,11 +20,11 @@ hello.bin: hello
 	$(STRIP) --strip-debug $<
 	$(OBJCOPY) -O binary $< $@
 
-romcode: hello.bin
-	./dumpmachinecode.py > $@
-	cat $@
+rom.mif: hello.bin
+	./dumpmachinecode.py > ../../projects/max1000_riscv/rom.mif
+	cat ../../projects/max1000_riscv/rom.mif
 
 clean:
-	rm -f objdump hello.*
+	rm -f objdump hello.* rom.mif
 
-.PHONY: clean all romcode
+.PHONY: clean all rom.mif

@@ -17,7 +17,7 @@ This is configured in `max1000_riscv.qsf` using per-file `-library` assignments.
 - `rv32i` core
 - `utils.crossbar` (port A → SDRAM, port C → ROM)
 - `sdram.sdram_ctrl`
-- `utils.rom`
+- `utils.rom` (initialized from `rom.mif`)
 - `utils.spi_lcd` (port B)
 
 The CPU debug bus is left unconnected. The memory/bus signals are tied off and

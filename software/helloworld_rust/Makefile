@@ -18,7 +18,7 @@ TARGET := riscv32i-unknown-none-elf
 ELF := target/$(TARGET)/release/helloworld_rust
 BIN := hello.bin
 
-all: romcode objdump readelf
+all: rom.mif objdump readelf
 
 build:
 	cargo build --release --target $(TARGET)
@@ -26,9 +26,9 @@ build:
 $(BIN): build
 	$(OBJCOPY) --strip-debug -O binary $(ELF) $(BIN)
 
-romcode: $(BIN)
-	./dumpmachinecode.py > $@
-	cat $@
+rom.mif: $(BIN)
+	./dumpmachinecode.py > ../../projects/max1000_riscv/rom.mif
+	cat ../../projects/max1000_riscv/rom.mif
 
 objdump: build
 	$(OBJDUMP) -D $(ELF) > $@
@@ -38,6 +38,6 @@ readelf: build
 
 clean:
 	cargo clean
-	rm -f $(BIN) romcode objdump readelf
+	rm -f $(BIN) rom.mif objdump readelf
 
-.PHONY: all build romcode objdump readelf clean
+.PHONY: all build rom.mif objdump readelf clean

@@ -1,470 +1,121 @@
 library ieee;
 use ieee.std_logic_1164.all;
-use ieee.numeric_std.ALL;
+use ieee.numeric_std.all;
+
+library altera_mf;
+use altera_mf.altera_mf_components.all;
 
 entity rom is
   port (
-	
-		clk	     : in std_logic;
-		
-		reset      : in std_logic;
+    clk   : in std_logic;
+    reset : in std_logic;
 
-		addr		  : in 		std_logic_vector(31 downto 0);
-		rw			  : in std_logic;
-		data       : inout   	std_logic_vector(31 downto 0);
-		rreq       : in 		std_logic;
-		rack       : out 		std_logic := '0';
-		
-		debug      : out     std_logic_vector(7 downto 0)
-		
- 
-    );
+    addr  : in    std_logic_vector(31 downto 0);
+    rw    : in    std_logic;
+    data  : inout std_logic_vector(31 downto 0);
+    rreq  : in    std_logic;
+    rack  : out   std_logic := '0';
+
+    debug : out   std_logic_vector(7 downto 0)
+  );
 end rom;
 
 architecture rtl of rom is
 
-type t_rom is array (0 to 1023) of std_logic_vector(31 downto 0);
+  type t_ram_state is (RAM_INIT, RAM_READ, RAM_WRITE, RAM_DONE);
 
-type t_ram_state IS (RAM_INIT,RAM_READ,RAM_WRITE,RAM_DONE);
+  signal rstate : t_ram_state := RAM_INIT;
 
-signal rstate : t_ram_state := RAM_INIT;
-
-signal data_o : std_logic_vector(31 downto 0);
-
--- A ROM containing code.
--- Debug-only hand-assembled ROMs live in lib/rv32i/rom_debug.vhd.
-constant rom : t_rom := (
-	
-	
-	
-	
-	0 => x"c2000117",
-1 => x"00010113",
-2 => x"2480006f",
-3 => x"20000737",
-4 => x"00072783",
-5 => x"0017f793",
-6 => x"fe079ce3",
-7 => x"200007b7",
-8 => x"00a7a423",
-9 => x"00008067",
-10 => x"ff010113",
-11 => x"00812423",
-12 => x"00112623",
-13 => x"00050413",
-14 => x"00044503",
-15 => x"00051a63",
-16 => x"00c12083",
-17 => x"00812403",
-18 => x"01010113",
-19 => x"00008067",
-20 => x"00140413",
-21 => x"fb9ff0ef",
-22 => x"fe1ff06f",
-23 => x"fe010113",
-24 => x"00912a23",
-25 => x"400004b7",
-26 => x"00812c23",
-27 => x"01212823",
-28 => x"01312623",
-29 => x"01412423",
-30 => x"00112e23",
-31 => x"00050a13",
-32 => x"01c00413",
-33 => x"00e00993",
-34 => x"4e848493",
-35 => x"ffc00913",
-36 => x"008a57b3",
-37 => x"00f7f793",
-38 => x"fff78793",
-39 => x"0ff7f793",
-40 => x"03000513",
-41 => x"00f9ec63",
-42 => x"00279793",
-43 => x"009787b3",
-44 => x"0007a783",
-45 => x"00078067",
-46 => x"03100513",
-47 => x"ffc40413",
-48 => x"f4dff0ef",
-49 => x"fd2416e3",
-50 => x"01c12083",
-51 => x"01812403",
-52 => x"01412483",
-53 => x"01012903",
-54 => x"00c12983",
-55 => x"00812a03",
-56 => x"02010113",
-57 => x"00008067",
-58 => x"03200513",
-59 => x"fd1ff06f",
-60 => x"03300513",
-61 => x"fc9ff06f",
-62 => x"03400513",
-63 => x"fc1ff06f",
-64 => x"03500513",
-65 => x"fb9ff06f",
-66 => x"03600513",
-67 => x"fb1ff06f",
-68 => x"03700513",
-69 => x"fa9ff06f",
-70 => x"03800513",
-71 => x"fa1ff06f",
-72 => x"03900513",
-73 => x"f99ff06f",
-74 => x"06100513",
-75 => x"f91ff06f",
-76 => x"06200513",
-77 => x"f89ff06f",
-78 => x"06300513",
-79 => x"f81ff06f",
-80 => x"06400513",
-81 => x"f79ff06f",
-82 => x"06500513",
-83 => x"f71ff06f",
-84 => x"06600513",
-85 => x"f69ff06f",
-86 => x"ff010113",
-87 => x"00112623",
-88 => x"00812423",
-89 => x"06400793",
-90 => x"02f51463",
-91 => x"03100513",
-92 => x"e9dff0ef",
-93 => x"03000513",
-94 => x"e95ff0ef",
-95 => x"03000513",
-96 => x"00812403",
-97 => x"00c12083",
-98 => x"01010113",
-99 => x"e81ff06f",
-100 => x"00900793",
-101 => x"00050413",
-102 => x"02a7f063",
-103 => x"00000513",
-104 => x"ff640413",
-105 => x"00150513",
-106 => x"fe87ece3",
-107 => x"03050513",
-108 => x"0ff57513",
-109 => x"e59ff0ef",
-110 => x"03040513",
-111 => x"0ff57513",
-112 => x"fc1ff06f",
-113 => x"ff010113",
-114 => x"000017b7",
-115 => x"00012623",
-116 => x"38778793",
-117 => x"00c12703",
-118 => x"00e7d663",
-119 => x"01010113",
-120 => x"00008067",
-121 => x"00c12703",
-122 => x"00c12703",
-123 => x"00170713",
-124 => x"00e12623",
-125 => x"fe1ff06f",
-126 => x"80000737",
-127 => x"02f00693",
-128 => x"00054783",
-129 => x"00079463",
-130 => x"00008067",
-131 => x"00e58633",
-132 => x"00f60023",
-133 => x"00158593",
-134 => x"00150513",
-135 => x"feb6d2e3",
-136 => x"00000593",
-137 => x"fddff06f",
-138 => x"800007b7",
-139 => x"00f585b3",
-140 => x"00054783",
-141 => x"00f58023",
-142 => x"00008067",
-143 => x"800007b7",
-144 => x"03050513",
-145 => x"00f585b3",
-146 => x"00a58023",
-147 => x"00008067",
-148 => x"40000537",
-149 => x"fd010113",
-150 => x"00000593",
-151 => x"52450513",
-152 => x"02112623",
-153 => x"02812423",
-154 => x"02912223",
-155 => x"03212023",
-156 => x"01312e23",
-157 => x"01412c23",
-158 => x"01512a23",
-159 => x"01612823",
-160 => x"01712623",
-161 => x"01812423",
-162 => x"01912223",
-163 => x"01a12023",
-164 => x"f69ff0ef",
-165 => x"40000537",
-166 => x"53450513",
-167 => x"d8dff0ef",
-168 => x"00010413",
-169 => x"40000537",
-170 => x"54450513",
-171 => x"d7dff0ef",
-172 => x"00040513",
-173 => x"da9ff0ef",
-174 => x"40000a37",
-175 => x"54ca0513",
-176 => x"d69ff0ef",
-177 => x"40000537",
-178 => x"55050513",
-179 => x"d5dff0ef",
-180 => x"400007b7",
-181 => x"c0fff437",
-182 => x"d0000ab7",
-183 => x"00600b37",
-184 => x"ffa00bb7",
-185 => x"56478c13",
-186 => x"400007b7",
-187 => x"00000913",
-188 => x"00000993",
-189 => x"000014b7",
-190 => x"e1240413",
-191 => x"001a8a93",
-192 => x"c00b0b13",
-193 => x"464b8b93",
-194 => x"57078c93",
-195 => x"01f41713",
-196 => x"41f75793",
-197 => x"0157f7b3",
-198 => x"00145413",
-199 => x"0087c433",
-200 => x"0084c7b3",
-201 => x"00f4a023",
-202 => x"06498793",
-203 => x"1767e263",
-204 => x"06493713",
-205 => x"14070e63",
-206 => x"000c0513",
-207 => x"cedff0ef",
-208 => x"00190913",
-209 => x"00090513",
-210 => x"e11ff0ef",
-211 => x"000c8513",
-212 => x"017989b3",
-213 => x"cd5ff0ef",
-214 => x"00448493",
-215 => x"018007b7",
-216 => x"faf496e3",
-217 => x"400007b7",
-218 => x"c0fff437",
-219 => x"d0000ab7",
-220 => x"00600b37",
-221 => x"ffa00bb7",
-222 => x"56478c93",
-223 => x"400007b7",
-224 => x"00000913",
-225 => x"00000993",
-226 => x"000014b7",
-227 => x"e1240413",
-228 => x"001a8a93",
-229 => x"c00b0b13",
-230 => x"464b8b93",
-231 => x"57078d13",
-232 => x"01f41713",
-233 => x"41f75793",
-234 => x"0157f7b3",
-235 => x"00145413",
-236 => x"0087c433",
-237 => x"0004a783",
-238 => x"0084cc33",
-239 => x"0cfc0e63",
-240 => x"40000437",
-241 => x"57440513",
-242 => x"c61ff0ef",
-243 => x"40000537",
-244 => x"58450513",
-245 => x"c55ff0ef",
-246 => x"00048513",
-247 => x"c81ff0ef",
-248 => x"40000537",
-249 => x"58c50513",
-250 => x"c41ff0ef",
-251 => x"0004a503",
-252 => x"c6dff0ef",
-253 => x"40000537",
-254 => x"59450513",
-255 => x"c2dff0ef",
-256 => x"000c0513",
-257 => x"c59ff0ef",
-258 => x"54ca0513",
-259 => x"c1dff0ef",
-260 => x"57440513",
-261 => x"20000ab7",
-262 => x"400009b7",
-263 => x"40000a37",
-264 => x"800004b7",
-265 => x"c05ff0ef",
-266 => x"00000413",
-267 => x"004a8913",
-268 => x"5b098993",
-269 => x"5b4a0a13",
-270 => x"01048493",
-271 => x"00a00b13",
-272 => x"000aa783",
-273 => x"0027f793",
-274 => x"00078863",
-275 => x"00092503",
-276 => x"0ff57513",
-277 => x"bb9ff0ef",
-278 => x"01400593",
-279 => x"00098513",
-280 => x"d99ff0ef",
-281 => x"d61ff0ef",
-282 => x"01400593",
-283 => x"000a0513",
-284 => x"d89ff0ef",
-285 => x"d51ff0ef",
-286 => x"03040793",
-287 => x"00f48023",
-288 => x"00140413",
-289 => x"fb641ee3",
-290 => x"00000413",
-291 => x"fb5ff06f",
-292 => x"00078993",
-293 => x"ec5ff06f",
-294 => x"06493713",
-295 => x"06498793",
-296 => x"04070063",
-297 => x"0367ee63",
-298 => x"000c8513",
-299 => x"b7dff0ef",
-300 => x"00190913",
-301 => x"00090513",
-302 => x"ca1ff0ef",
-303 => x"000d0513",
-304 => x"017989b3",
-305 => x"b65ff0ef",
-306 => x"00448493",
-307 => x"018007b7",
-308 => x"ecf498e3",
-309 => x"40000537",
-310 => x"5a050513",
-311 => x"f39ff06f",
-312 => x"00078993",
-313 => x"fe5ff06f",
-314 => x"400000b8",
-315 => x"400000e8",
-316 => x"400000f0",
-317 => x"400000f8",
-318 => x"40000100",
-319 => x"40000108",
-320 => x"40000110",
-321 => x"40000118",
-322 => x"40000120",
-323 => x"40000128",
-324 => x"40000130",
-325 => x"40000138",
-326 => x"40000140",
-327 => x"40000148",
-328 => x"40000150",
-329 => x"2c696548",
-330 => x"72657620",
-331 => x"216e6564",
-332 => x"00000000",
-333 => x"6c6c6548",
-334 => x"77202c6f",
-335 => x"646c726f",
-336 => x"00000021",
-337 => x"203a7073",
-338 => x"00007830",
-339 => x"00000a0d",
-340 => x"746d656d",
-341 => x"3a747365",
-342 => x"69727720",
-343 => x"2e2e6574",
-344 => x"000a0d2e",
-345 => x"746d656d",
-346 => x"3a747365",
-347 => x"00000020",
-348 => x"000a0d25",
-349 => x"746d656d",
-350 => x"3a747365",
-351 => x"49414620",
-352 => x"000a0d4c",
-353 => x"30203a70",
-354 => x"00000078",
-355 => x"3a702a20",
-356 => x"00783020",
-357 => x"70786520",
-358 => x"3a746365",
-359 => x"00783020",
-360 => x"746d656d",
-361 => x"3a747365",
-362 => x"53415020",
-363 => x"000a0d53",
-364 => x"002f5e5e",
-365 => x"007c5e5e",
-
-
-
-
-
-	others => (others => '0')
-);
+  signal data_o  : std_logic_vector(31 downto 0);
+  signal rom_addr     : std_logic_vector(9 downto 0);
+  signal rom_addr_reg : std_logic_vector(9 downto 0);
+  signal rom_q    : std_logic_vector(31 downto 0);
 
 begin
 
-data <= data_o when (rw = '0') else (others => 'Z');
+  data <= data_o when (rw = '0') else (others => 'Z');
 
-process(clk,reset)
+  rom_addr <= rom_addr_reg;
 
-variable idx : integer range 0 to 1023;
+  u_rom : altsyncram
+    generic map (
+      clock_enable_input_a => "BYPASS",
+      clock_enable_output_a => "BYPASS",
+      init_file => "rom.mif",
+      numwords_a => 1024,
+      operation_mode => "ROM",
+      outdata_reg_a => "UNREGISTERED",
+      widthad_a => 10,
+      width_a => 32,
+      width_byteena_a => 1,
+      lpm_hint => "ENABLE_RUNTIME_MOD=NO",
+      lpm_type => "altsyncram"
+    )
+    port map (
+      address_a => rom_addr,
+      clock0 => clk,
+      rden_a => '1',
+      q_a => rom_q,
+      data_a => (others => '0'),
+      wren_a => '0'
+    );
 
-begin
-	
-	if falling_edge(clk) then
-	
-		if reset = '1' then
-			-- Reset
-			rstate <= RAM_INIT;
-			rack <= '0';
-			
-			data_o <= x"00000076";
-			
-			debug <= (others => '0');
+  process(clk, reset)
 
-		else
-			case rstate is
-			
-				when RAM_INIT =>
-				
-					if rreq = '1' then
-					
-						debug(0) <= '1';
-						
-						if RW = '0' then
-						
-							idx := to_integer(unsigned(addr(11 downto 2)));
-							data_o <= rom(to_integer(unsigned(addr(11 downto 2))));--addr;--rom( unsigned(addr(11 downto 2)) );--idx );
-						end if;
-						
-						rack <= '1';
-						rstate <= RAM_DONE;
-					end if;
-				
-				when RAM_DONE =>
-				
-					if rreq = '0' then
-						rack <= '0';
-						rstate <= RAM_INIT;
-					end if;
-			
-				when others =>
-					-- error
-			end case;
-		end if;
-		
-	end if;
-end process;
+    variable idx : integer range 0 to 1023;
+
+  begin
+
+    if falling_edge(clk) then
+
+      if reset = '1' then
+        -- Reset
+        rstate <= RAM_INIT;
+        rack <= '0';
+
+        data_o <= x"00000076";
+
+        debug <= (others => '0');
+
+      else
+        case rstate is
+
+          when RAM_INIT =>
+
+            if rreq = '1' then
+
+              debug(0) <= '1';
+
+              if rw = '0' then
+                idx := to_integer(unsigned(addr(11 downto 2)));
+                rom_addr_reg <= addr(11 downto 2);
+              end if;
+
+              rstate <= RAM_READ;
+            end if;
+
+          when RAM_READ =>
+
+            if rw = '0' then
+              data_o <= rom_q;
+            end if;
+
+            rack <= '1';
+            rstate <= RAM_DONE;
+
+          when RAM_DONE =>
+
+            if rreq = '0' then
+              rack <= '0';
+              rstate <= RAM_INIT;
+            end if;
+
+          when others =>
+            -- error
+        end case;
+      end if;
+
+    end if;
+  end process;
 
 end rtl;
