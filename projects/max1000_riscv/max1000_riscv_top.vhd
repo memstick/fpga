@@ -146,10 +146,14 @@ begin
 		addr_s(2) 		=> xbar_c_addr,
 		addr_s(3) 		=> xbar_d_addr,
 
+        /* 
+        FIXME: stubbed out. Causes multiple-assignment issues,
+        because peripherals also write directly to this
 		data_s(0) 		=> xbar_a_data,
 		data_s(1) 		=> xbar_b_data,
 		data_s(2) 		=> xbar_c_data,
 		data_s(3) 		=> xbar_d_data,
+        */
 
 		rreq_s(0) 		=> xbar_a_rreq,
 		rreq_s(1) 		=> xbar_b_rreq,
