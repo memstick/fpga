@@ -564,12 +564,11 @@ package body rv32i_pkg is
             when "001" => -- SLLI
                 gpr_rd <= std_logic_vector(unsigned(gpr_rs1) sll rs2);
             when "101" => -- SRLI / SRAI
-                case funct7(5) is
-                    when '0' => -- SRLI
-                        gpr_rd <= std_logic_vector(unsigned(gpr_rs1) srl rs2);
-                    when '1' => -- SRAI
-                        gpr_rd <= std_logic_vector(shift_right(signed(gpr_rs1), rs2));
-                end case;
+                if funct7(5) = '0' then -- SRLI
+                    gpr_rd <= std_logic_vector(unsigned(gpr_rs1) srl rs2);
+                else -- SRAI
+                    gpr_rd <= std_logic_vector(shift_right(signed(gpr_rs1), rs2));
+                end if;
             when others =>
         end case;
         state <= WRITEBACK;
@@ -586,12 +585,11 @@ package body rv32i_pkg is
     begin
         case funct3 is
             when "000" => -- ADD/SUB
-                case funct7(5) is
-                    when '0' => -- ADD
-                        gpr_rd <= std_logic_vector(unsigned(gpr_rs1) + unsigned(gpr_rs2));
-                    when '1' => -- SUB
-                        gpr_rd <= std_logic_vector(unsigned(gpr_rs1) - unsigned(gpr_rs2));
-                end case;
+                if funct7(5) = '0' then -- ADD
+                    gpr_rd <= std_logic_vector(unsigned(gpr_rs1) + unsigned(gpr_rs2));
+                else -- SUB
+                    gpr_rd <= std_logic_vector(unsigned(gpr_rs1) - unsigned(gpr_rs2));
+                end if;
             when "001" => -- SLL
                 gpr_rd <= std_logic_vector(unsigned(gpr_rs1) sll to_integer(unsigned(gpr_rs2(4 downto 0))));
             when "010" => -- SLT
@@ -609,12 +607,11 @@ package body rv32i_pkg is
             when "100" => -- XOR
                 gpr_rd <= gpr_rs1 xor gpr_rs2;
             when "101" => -- SRL/SRA
-                case funct7(5) is
-                    when '0' => -- SRL
-                        gpr_rd <= std_logic_vector(unsigned(gpr_rs1) srl to_integer(unsigned(gpr_rs2(4 downto 0))));
-                    when '1' => -- SRA
-                        gpr_rd <= std_logic_vector(shift_right(signed(gpr_rs1), to_integer(unsigned(gpr_rs2(4 downto 0)))));
-                end case;
+                if funct7(5) = '0' then -- SRL
+                    gpr_rd <= std_logic_vector(unsigned(gpr_rs1) srl to_integer(unsigned(gpr_rs2(4 downto 0))));
+                else -- SRA
+                    gpr_rd <= std_logic_vector(shift_right(signed(gpr_rs1), to_integer(unsigned(gpr_rs2(4 downto 0)))));
+                end if;
             when "110" => -- OR
                 gpr_rd <= gpr_rs1 or gpr_rs2;
             when "111" => -- AND
