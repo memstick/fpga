@@ -1,0 +1,19 @@
+###################################
+# Physical constraints file (pcf) #
+# for Max1000                     #
+###################################
+
+# All pin names are guesswork based on blinky-max1000.qsf
+
+## 12 MHz clock
+set_io clk_in H6
+
+set_io leds[0] A8
+set_io leds[1] A9
+set_io leds[2] A11
+set_io leds[3] A10
+set_io leds[4] B10
+
+set_io leds[5] C9
+set_io leds[6] C10
+set_io leds[7] D8

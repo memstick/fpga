@@ -1,0 +1,18 @@
+###################################
+# Physical constraints file (pcf) #
+# for iCEstick                    #
+# iCE40HX1K TQ144                 #
+###################################
+
+## 12 MHz clock
+set_io clk_in 21
+
+set_io leds[0] 99    # red LED D1 (top)
+set_io leds[1] 98    # red LED D2 (right)
+set_io leds[2] 97    # red LED D3 (bottom)
+set_io leds[3] 96    # red LED D4 (left)
+set_io leds[4] 95    # green LED D5 (center)
+
+set_io leds[5] 78    # ?
+set_io leds[6] 79    # ?
+set_io leds[7] 80    # ?

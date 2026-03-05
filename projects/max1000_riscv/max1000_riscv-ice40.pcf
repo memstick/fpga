@@ -1,0 +1,74 @@
+###################################
+# Physical constraints file (pcf) #
+# for iCEstick                    #
+# iCE40HX1K TQ144                 #
+###################################
+
+# All these pins arep randomly assigned to get build limping along
+
+## 12 MHz clock
+set_io clk_in 21
+
+# LED pins (LED0..LED7)
+set_io leds[0] 99    # red LED D1 (top)
+set_io leds[1] 98    # red LED D2 (right)
+set_io leds[2] 97    # red LED D3 (bottom)
+set_io leds[3] 96    # red LED D4 (left)
+set_io leds[4] 95    # green LED D5 (center)
+set_io leds[5] 94    # ?
+set_io leds[6] 93    # ?
+set_io leds[7] 91    # ?
+
+# SPI LCD
+set_io spi_data  1
+set_io spi_clk   2
+set_io spi_rs    3
+set_io spi_rst   4
+
+# SDRAM
+set_io sdram_clk   60
+set_io sdram_cke   61
+set_io sdram_cs    62
+set_io sdram_ras   63
+set_io sdram_cas   64
+set_io sdram_we    67
+set_io sdram_ba[0] 68
+set_io sdram_ba[1] 70
+
+set_io sdram_a[0] 71
+set_io sdram_a[1] 73
+set_io sdram_a[2] 74
+set_io sdram_a[3] 75
+set_io sdram_a[4] 76
+set_io sdram_a[5] 78
+set_io sdram_a[6] 79
+set_io sdram_a[7] 80
+set_io sdram_a[8] 81
+set_io sdram_a[9] 82
+set_io sdram_a[10] 83
+set_io sdram_a[11] 84
+set_io sdram_a[12] 85
+set_io sdram_a[13] 87
+
+set_io sdram_dq[0] 7
+set_io sdram_dq[1] 8
+set_io sdram_dq[2] 9
+set_io sdram_dq[3] 10
+set_io sdram_dq[4] 11
+set_io sdram_dq[5] 12
+set_io sdram_dq[6] 15
+set_io sdram_dq[7] 16
+set_io sdram_dq[8] 17
+set_io sdram_dq[9] 18
+set_io sdram_dq[10] 19
+set_io sdram_dq[11] 20
+set_io sdram_dq[12] 22
+set_io sdram_dq[13] 23
+set_io sdram_dq[14] 24
+set_io sdram_dq[15] 25
+set_io sdram_dqm[0] 26
+set_io sdram_dqm[1] 28
+
+# UART
+set_io uart_rx 106    # IrDA receive
+set_io uart_tx 105    # IrDA send
