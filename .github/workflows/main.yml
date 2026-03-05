@@ -1,0 +1,47 @@
+name: build
+
+on:
+  push:
+    branches: '*'
+  pull_request:
+    branches: '*'
+
+jobs:
+  build:
+    name: prepare and build
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: install build tools
+        run: |
+          sudo apt install -y ghdl yosys nextpnr-ice40 fpga-icestorm
+
+      - name: build and install yosys-plugin-ghdl
+        run: |
+          set +x
+          sudo apt install git-buildpackage
+          mkdir tmp
+          gbp clone https://salsa.debian.org/electronics-team/ghdl/yosys-plugin-ghdl.git tmp/yosys-plugin-ghdl
+          (cd tmp/yosys-plugin-ghdl && sudo apt build-dep -y .)
+          (cd tmp/yosys-plugin-ghdl && gbp buildpackage -us -uc)
+          sudo apt install -y ./tmp/yosys-plugin-ghdl_*.deb
+
+      - name: compile blinky.bin for ice40
+        run: |
+          make blinky.bin FPGA=ice40
+
+      - name: compile riscv.bin for ice40
+        run: |
+          make riscv.bin FPGA=ice40
+
+      - name: compile blinky.bin for max1000
+        run: |
+          make blinky.bin FPGA=max1000
+
+      - name: compile riscv.bin for max1000
+        run: |
+          make riscv.bin FPGA=max1000
