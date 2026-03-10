@@ -32,16 +32,16 @@ jobs:
 
       - name: compile blinky.bin for ice40
         run: |
-          make blinky.bin FPGA=ice40
+          make clean blinky.bin FPGA=ice40
 
       - name: compile riscv.bin for ice40
         run: |
-          make riscv.bin FPGA=ice40
+          make clean riscv.bin FPGA=ice40
 
       - name: compile blinky.bin for max1000
         run: |
-          make blinky.bin FPGA=max1000
+          make clean blinky.bin FPGA=max1000
 
       - name: compile riscv.bin for max1000
         run: |
-          make riscv.bin FPGA=max1000
+          make clean riscv.bin FPGA=max1000

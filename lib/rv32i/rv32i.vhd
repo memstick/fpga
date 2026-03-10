@@ -60,10 +60,10 @@ architecture rtl of rv32i is
     signal IMM : std_logic_vector(31 downto 0); --
 
     -- rs1 and rs2 register
-    signal RS1 : integer range 0 to 31; --(4 downto 0) := (others => '0');
-    signal RS2 : integer range 0 to 31; --(4 downto 0) := (others => '0');
+    signal RS1 : integer; --(4 downto 0) := (others => '0');
+    signal RS2 : integer; --(4 downto 0) := (others => '0');
 
-    signal RD : integer range 0 to 31;
+    signal RD : integer;
 
     -- Funct register
     signal FUNCT3 : std_logic_vector(2 downto 0) := (others => '0');

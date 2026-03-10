@@ -3,33 +3,17 @@ library ieee;
 use ieee.std_logic_1164.all;
 
 package rv32i_global is
-
-	function rv32i_lui      return std_logic_vector;
-	function rv32i_auipc    return std_logic_vector;
-	function rv32i_jal      return std_logic_vector;
-	function rv32i_jalr     return std_logic_vector;
-	function rv32i_b        return std_logic_vector;
-	function rv32i_l        return std_logic_vector;
-	function rv32i_s        return std_logic_vector;
-	function rv32i_compi    return std_logic_vector;
-	function rv32i_compr    return std_logic_vector;
-	function rv32i_fence    return std_logic_vector;
-	function rv32i_system   return std_logic_vector;
-
+    constant rv32i_lui      : std_logic_vector(6 downto 0) := "0110111";
+    constant rv32i_auipc    : std_logic_vector(6 downto 0) := "0010111";
+    constant rv32i_jal      : std_logic_vector(6 downto 0) := "1101111";
+    constant rv32i_jalr     : std_logic_vector(6 downto 0) := "1100111";
+    constant rv32i_b        : std_logic_vector(6 downto 0) := "1100011";
+    constant rv32i_l        : std_logic_vector(6 downto 0) := "0000011";
+    constant rv32i_s        : std_logic_vector(6 downto 0) := "0100011";
+    constant rv32i_compi    : std_logic_vector(6 downto 0) := "0010011";
+    constant rv32i_compr    : std_logic_vector(6 downto 0) := "0110011";
+    constant rv32i_fence    : std_logic_vector(6 downto 0) := "0001111";
+    constant rv32i_system   : std_logic_vector(6 downto 0) := "1110011";
 end package rv32i_global;
 
-package body rv32i_global is
 
-		--function rv32i_        return std_logic_vector is begin return ""; end;
-	function rv32i_lui      return std_logic_vector is begin return "0110111"; end;
-	function rv32i_auipc    return std_logic_vector is begin return "0010111"; end;
-	function rv32i_jal      return std_logic_vector is begin return "1101111"; end;
-	function rv32i_jalr     return std_logic_vector is begin return "1100111"; end;
-	function rv32i_b        return std_logic_vector is begin return "1100011"; end;
-	function rv32i_l        return std_logic_vector is begin return "0000011"; end;
-	function rv32i_s        return std_logic_vector is begin return "0100011"; end;
-	function rv32i_compi    return std_logic_vector is begin return "0010011"; end;
-	function rv32i_compr    return std_logic_vector is begin return "0110011"; end;
-	function rv32i_fence    return std_logic_vector is begin return "0001111"; end;
-	function rv32i_system   return std_logic_vector is begin return "1110011"; end;
-end package body rv32i_global;

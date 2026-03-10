@@ -113,6 +113,9 @@ begin
   -- Synchronize reset deassertion into clk_200k domain.
   reset_200k <= reset_200k_vec(0);
 
+/*
+Disabled - triggers a GHDL, discriminant check failed
+
   u_cpu : entity rv32i.rv32i
     port map (
       clk   => clk_sys,
@@ -123,6 +126,7 @@ begin
       RW    => rw,
       rreq  => rreq
     );
+*/
 
   u_xbar : entity utils.crossbar
     generic map ( g_num_ports => 4 )
@@ -137,31 +141,36 @@ begin
       rack_m  => rack,
 		
 		port_match(0) 	=> "0000",
-		addr_s(0) 		=> xbar_a_addr,
-		data_s(0) 		=> xbar_a_data,
-		rreq_s(0) 		=> xbar_a_rreq,
-		rw_s(0)   		=> xbar_a_rw,
-		rack_s(0) 		=> xbar_a_rack,
-		
 		port_match(1) 	=> "1000",
-		addr_s(1) 		=> xbar_b_addr,
-		data_s(1) 		=> xbar_b_data,
-		rreq_s(1) 		=> xbar_b_rreq,
-		rw_s(1)   		=> xbar_b_rw,
-		rack_s(1) 		=> xbar_b_rack,
-		
 		port_match(2) 	=> "0100",
-		addr_s(2) 		=> xbar_c_addr,
-		data_s(2) 		=> xbar_c_data,
-		rreq_s(2) 		=> xbar_c_rreq,
-		rw_s(2)   		=> xbar_c_rw,
-		rack_s(2) 		=> xbar_c_rack,
-
 		port_match(3) 	=> "0010",
+
+		addr_s(0) 		=> xbar_a_addr,
+		addr_s(1) 		=> xbar_b_addr,
+		addr_s(2) 		=> xbar_c_addr,
 		addr_s(3) 		=> xbar_d_addr,
-		data_s(3) 		=> xbar_d_data,
+
+
+        --FIXME: stubbed out. Causes multiple-assignment issues,
+        -- because peripherals also write directly to this
+		-- data_s(0) 		=> xbar_a_data,
+		-- data_s(1) 		=> xbar_b_data,
+		-- data_s(2) 		=> xbar_c_data,
+		-- data_s(3) 		=> xbar_d_data,
+
+		rreq_s(0) 		=> xbar_a_rreq,
+		rreq_s(1) 		=> xbar_b_rreq,
+		rreq_s(2) 		=> xbar_c_rreq,
 		rreq_s(3) 		=> xbar_d_rreq,
+
+		rw_s(0)   		=> xbar_a_rw,
+		rw_s(1)   		=> xbar_b_rw,
+		rw_s(2)   		=> xbar_c_rw,
 		rw_s(3)   		=> xbar_d_rw,
+
+		rack_s(0) 		=> xbar_a_rack,
+		rack_s(1) 		=> xbar_b_rack,
+		rack_s(2) 		=> xbar_c_rack,
 		rack_s(3) 		=> xbar_d_rack,
 
       debug  => open
