@@ -148,8 +148,6 @@ end process;
 
 process(reset,clk_200k)
 
-variable test : unsigned(7 downto 0);
-
 begin
 
 if reset = '1' then
